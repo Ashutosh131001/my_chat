@@ -1,0 +1,55 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "reddit-86621",
+          "appId": "1:1085637723112:android:4c881975ed239dccef1a5d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "reddit-86621",
+          "appId": "1:1085637723112:ios:0634bc4431742afcef1a5d",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "reddit-86621",
+          "appId": "1:1085637723112:ios:0634bc4431742afcef1a5d",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "reddit-86621",
+          "configurations": {
+            "android": "1:1085637723112:android:4c881975ed239dccef1a5d",
+            "ios": "1:1085637723112:ios:0634bc4431742afcef1a5d",
+            "macos": "1:1085637723112:ios:0634bc4431742afcef1a5d",
+            "web": "1:1085637723112:web:6a3c7b77593d627def1a5d",
+            "windows": "1:1085637723112:web:d7e727a138df4f79ef1a5d"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

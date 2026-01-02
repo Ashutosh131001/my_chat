@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1085637723112",
+    "project_id": "reddit-86621",
+    "storage_bucket": "reddit-86621.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085637723112:android:4c881975ed239dccef1a5d",
+        "android_client_info": {
+          "package_name": "com.example.my_chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQVhxCyugbw1CV3ITHEwXp38N8Uh_Zh5w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085637723112:android:3ad17cf0698ebbc6ef1a5d",
+        "android_client_info": {
+          "package_name": "com.example.reddit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQVhxCyugbw1CV3ITHEwXp38N8Uh_Zh5w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
