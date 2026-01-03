@@ -77,7 +77,7 @@ class ChatListPage extends StatelessWidget {
         ),
       ),
 
-      /* ---------------- BODY ---------------- */
+      //body
       body: Obx(() {
         if (chatListVM.isLoading.value) {
           return const Center(
@@ -85,7 +85,6 @@ class ChatListPage extends StatelessWidget {
           );
         }
 
-        // 🔥 FILTER LOGIC: Only show chats that have a message newer than the "clear" timestamp
         final visibleChats = chatListVM.chatList.where((item) {
           final int clearTime = item.chatroom.clearedBy[currentUid] ?? 0;
           final int lastMsgTime = item.chatroom.lastMessageTime ?? 0;
@@ -123,6 +122,7 @@ class ChatListPage extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
+                    // ignore: deprecated_member_use
                     color: Colors.black.withOpacity(0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
@@ -136,6 +136,7 @@ class ChatListPage extends StatelessWidget {
                   Get.to(
                     () => pageofchat(otherUser: user),
                     transition: Transition.cupertino,
+                    duration: Durations.long4,
                   );
                 },
                 onLongPress: () {
@@ -262,7 +263,6 @@ class ChatListPage extends StatelessWidget {
                 onTap: () async {
                   Navigator.pop(context);
 
-                  // Update the clearedBy map with CURRENT time
                   await FirebaseFirestore.instance
                       .collection('chatrooms')
                       .doc(chatId)
