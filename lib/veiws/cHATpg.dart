@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,10 +11,10 @@ import 'package:my_chat/viewmodels/chatmessageveiwmodel.dart';
 class pageofchat extends StatelessWidget {
   final usermodel otherUser;
   final Chatmessageveiwmodel chatVM = Get.put(Chatmessageveiwmodel());
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   pageofchat({super.key, required this.otherUser});
-
-  final TextEditingController _messageController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -24,259 +25,110 @@ class pageofchat extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            backgroundColor: Colors.white,
+            body: Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.blueAccent,
+              ),
+            ),
           );
         }
 
-        final ChatRoomModel initialRoom = snapshot.data!;
-        final String chatId = initialRoom.chatId;
+        final String chatId = snapshot.data!.chatId;
 
-        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance
-              .collection('chatrooms')
-              .doc(chatId)
-              .snapshots(),
-          builder: (context, roomSnapshot) {
-            if (!roomSnapshot.hasData || !roomSnapshot.data!.exists) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            final chatRoom = ChatRoomModel.fromMap(roomSnapshot.data!.data()!);
-
-            final int? clearedAt = chatRoom.clearedBy[currentUid];
-
-            return Scaffold(
-              backgroundColor: const Color(0xFFF2F6FF),
-
-              /* ---------------- APP BAR ---------------- */
-              appBar: AppBar(
-                backgroundColor: Colors.blueAccent,
-                title: InkWell(
-                  onTap: () {
-                    Get.to(
-                      () => OtherUserProfileView(userid: otherUser.uid),
-                      transition: Transition.cupertino,
-                    );
-                  },
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundImage: otherUser.profileImageUrl != null
-                            ? NetworkImage(otherUser.profileImageUrl!)
-                            : null,
-                        child: otherUser.profileImageUrl == null
-                            ? Text(otherUser.name[0].toUpperCase())
-                            : null,
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F9FD),
+          body: Stack(
+            children: [
+              /* -------- LAYER 1: PREMIUM WALLPAPER TEXTURE -------- */
+              Opacity(
+                opacity: 0.03,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: NetworkImage(
+                        "https://www.transparenttextures.com/patterns/cubes.png",
                       ),
-                      const SizedBox(width: 12),
-                      Text(otherUser.name),
-                    ],
+                      repeat: ImageRepeat.repeat,
+                    ),
                   ),
                 ),
               ),
 
-              /* ---------------- BODY ---------------- */
-              body: Column(
+              /* -------- LAYER 2: CHAT MESSAGES -------- */
+              Column(
                 children: [
                   Expanded(
                     child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                       stream: chatVM.streamMessages(
                         chatId: chatId,
                         myUserId: currentUid,
-                        clearedBy: chatRoom.clearedBy,
+                        clearedBy: snapshot.data!.clearedBy,
                       ),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(child: Text("Say hi 👋"));
+                      builder: (context, msgSnapshot) {
+                        if (!msgSnapshot.hasData) {
+                          return const Center(
+                            child: Text(
+                              "Say hi 👋",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
                         }
 
-                        final messages = snapshot.data!.docs;
+                        // 🔥 SEEN LOGIC: Update Firestore when receiver views messages
+                        final allDocs = msgSnapshot.data!.docs;
+                        if (allDocs.isNotEmpty) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            chatVM.markMessagesAsSeen(chatId);
+                          });
+                        }
+
+                        // Filter messages locally for "Delete for Me"
+                        final messages = allDocs
+                            .where((doc) {
+                              final List deletedFor =
+                                  doc.data()['deletedFor'] ?? [];
+                              return !deletedFor.contains(currentUid);
+                            })
+                            .toList()
+                            .reversed
+                            .toList(); // Reverse for standard chat bottom-anchor
 
                         return ListView.builder(
-                          padding: const EdgeInsets.all(12),
+                          controller: _scrollController,
+                          reverse: true, // Anchor messages to the bottom
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 135),
                           itemCount: messages.length,
                           itemBuilder: (context, index) {
                             final msg = messages[index].data();
                             final bool isMe = msg['senderId'] == currentUid;
-
-                            final List deletedFor = msg['deletedFor'] ?? [];
-
-                            // DELETE FOR ME
-                            if (deletedFor.contains(currentUid)) {
-                              return const SizedBox.shrink();
-                            }
-
-                            // CLEAR CHAT FILTER (IMPORTANT)
-                            final int msgTime = msg['timestamp'];
-                            if (clearedAt != null && msgTime <= clearedAt) {
-                              return const SizedBox.shrink();
-                            }
-
-                            final bool isDeletedForEveryone =
-                                msg['isDeletedForEveryone'] == true;
-
-                            return GestureDetector(
-                              onLongPress: () {
-                                _showDeleteOptions(
-                                  context,
-                                  chatId,
-                                  messages[index].id,
-                                  isMe,
-                                );
-                              },
-                              child: Align(
-                                alignment: isMe
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isMe
-                                        ? Colors.blueAccent
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        isDeletedForEveryone
-                                            ? "This message was deleted"
-                                            : msg['text'] ?? "",
-                                        style: TextStyle(
-                                          color: isMe
-                                              ? Colors.white
-                                              : Colors.black87,
-                                          fontStyle: isDeletedForEveryone
-                                              ? FontStyle.italic
-                                              : FontStyle.normal,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatTime(msgTime),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: isMe
-                                              ? Colors.white70
-                                              : Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                            return _buildUltraMessageBubble(
+                              context,
+                              msg,
+                              isMe,
+                              chatId,
+                              messages[index].id,
                             );
                           },
                         );
                       },
                     ),
                   ),
-
-                  _buildInputBar(chatId),
+                  _buildUltraInputPod(chatId),
                 ],
               ),
-            );
-          },
-        );
-      },
-    );
-  }
 
-  /* ---------------- INPUT BAR ---------------- */
-  Widget _buildInputBar(String chatId) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
-      color: Colors.white,
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: "Type a message",
-                filled: true,
-                fillColor: const Color(0xFFF1F1F1),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
+              /* -------- LAYER 3: FLOATING GLASS APP BAR -------- */
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 16,
+                right: 16,
+                child: _buildFloatingGlassHeader(context),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Obx(() {
-            return CircleAvatar(
-              backgroundColor: Colors.blueAccent,
-              child: IconButton(
-                icon: chatVM.issending.value
-                    ? const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      )
-                    : const Icon(Icons.send, color: Colors.white),
-                onPressed: chatVM.issending.value
-                    ? null
-                    : () async {
-                        final text = _messageController.text.trim();
-                        if (text.isEmpty) return;
-                        _messageController.clear();
-                        await chatVM.sendmessage(chatid: chatId, text: text);
-                      },
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  /* ---------------- DELETE OPTIONS ---------------- */
-  void _showDeleteOptions(
-    BuildContext context,
-    String chatId,
-    String messageId,
-    bool isMe,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: const Text("Delete for me"),
-                onTap: () {
-                  Navigator.pop(context);
-                  chatVM.deleteMessageForMe(
-                    chatId: chatId,
-                    messageId: messageId,
-                  );
-                },
-              ),
-              if (isMe)
-                ListTile(
-                  leading: const Icon(Icons.delete_forever),
-                  title: const Text("Delete for everyone"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    chatVM.deleteMessageForEveryone(
-                      chatId: chatId,
-                      messageId: messageId,
-                    );
-                  },
-                ),
             ],
           ),
         );
@@ -284,11 +136,412 @@ class pageofchat extends StatelessWidget {
     );
   }
 
+  /* ---------------- ULTRA FLOATING GLASS HEADER ---------------- */
+  Widget _buildFloatingGlassHeader(BuildContext context) {
+    return Container(
+      height: 75,
+      decoration: BoxDecoration(
+        // ignore: deprecated_member_use
+        color: Colors.white.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(28),
+        // ignore: deprecated_member_use
+        border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            // ignore: deprecated_member_use
+            color: Colors.blueAccent.withOpacity(0.08),
+            blurRadius: 25,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 20,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                  onPressed: () => Get.back(),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => Get.to(
+                      () => OtherUserProfileView(userid: otherUser.uid),
+                      transition: Transition.cupertino,
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFFF0F3F8),
+                          backgroundImage: otherUser.profileImageUrl != null
+                              ? NetworkImage(otherUser.profileImageUrl!)
+                              : null,
+                          child: otherUser.profileImageUrl == null
+                              ? Text(
+                                  otherUser.name[0],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                otherUser.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF1A1A1A),
+                                  letterSpacing: -0.3,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 3,
+                                    backgroundColor: Colors.green,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    "Online",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.videocam_outlined,
+                    color: Colors.blueAccent,
+                  ),
+                  onPressed: () {
+                    Get.snackbar('Sorry', "the feature is under progress");
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /* ---------------- ULTRA MESSAGE BUBBLE ---------------- */
+  Widget _buildUltraMessageBubble(
+    BuildContext context,
+    Map msg,
+    bool isMe,
+    String chatId,
+    String msgId,
+  ) {
+    bool isDeleted = msg['isDeletedForEveryone'] == true;
+
+    // Status Logic (Seen receipt)
+    List seenBy = msg['seenBy'] ?? [];
+    bool isSeen = seenBy.length > 1; // Sender + Receiver
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onLongPress: () =>
+                  _showDeleteOptions(context, chatId, msgId, isMe),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.78,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  gradient: isMe
+                      ? const LinearGradient(
+                          colors: [Color(0xFF3A86FF), Color(0xFF007BFF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : const LinearGradient(
+                          colors: [Colors.white, Color(0xFFFDFDFF)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(25),
+                    topRight: const Radius.circular(25),
+                    bottomLeft: Radius.circular(isMe ? 25 : 8),
+                    bottomRight: Radius.circular(isMe ? 8 : 25),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isMe
+                          // ignore: deprecated_member_use
+                          ? Colors.blueAccent.withOpacity(0.2)
+                          // ignore: deprecated_member_use
+                          : Colors.black.withOpacity(0.04),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  isDeleted
+                      ? "🚫 This message was deleted"
+                      : (msg['text'] ?? ""),
+                  style: TextStyle(
+                    color: isMe ? Colors.white : const Color(0xFF2D3436),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 8, right: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatTime(msg['timestamp'] ?? 0),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (isMe && !isDeleted) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.done_all_rounded, // Double tick
+                      size: 15,
+                      color: isSeen ? Colors.blueAccent : Colors.grey.shade400,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /* ---------------- ULTRA FLOATING INPUT POD ---------------- */
+  Widget _buildUltraInputPod(String chatId) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 35),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(35),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 10),
+            InkWell(
+              onTap: () {
+                Get.snackbar(
+                  "Under Progress 😅",
+                  "Wait for few days until it works",
+                );
+              },
+              child: const Icon(
+                Icons.sentiment_satisfied_alt_rounded,
+                color: Colors.grey,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: const InputDecoration(
+                  hintText: "Write a message...",
+                  hintStyle: TextStyle(color: Color(0xFFB0B0B0)),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+            Obx(
+              () => GestureDetector(
+                onTap: chatVM.issending.value
+                    ? null
+                    : () async {
+                        final text = _messageController.text.trim();
+                        if (text.isEmpty) return;
+                        _messageController.clear();
+                        await chatVM.sendmessage(chatid: chatId, text: text);
+                        _scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3A86FF), Color(0xFF007BFF)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blueAccent.withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: chatVM.issending.value
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /* ---------------- HELPERS ---------------- */
   String _formatTime(int timestamp) {
+    if (timestamp == 0) return "";
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final h = date.hour % 12 == 0 ? 12 : date.hour % 12;
-    final m = date.minute.toString().padLeft(2, '0');
-    final ampm = date.hour >= 12 ? "PM" : "AM";
-    return "$h:$m $ampm";
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final min = date.minute.toString().padLeft(2, '0');
+    return "$hour:$min ${date.hour >= 12 ? 'PM' : 'AM'}";
+  }
+
+  void _showDeleteOptions(
+    BuildContext context,
+    String chatId,
+    String messageId,
+    bool isMe,
+  ) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(28),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(35)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 45,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 30),
+            _buildActionTile(
+              Icons.delete_outline,
+              "Delete for me",
+              Colors.black87,
+              () {
+                Get.back();
+                chatVM.deleteMessageForMe(chatId: chatId, messageId: messageId);
+              },
+            ),
+            if (isMe)
+              _buildActionTile(
+                Icons.delete_forever_rounded,
+                "Delete for everyone",
+                Colors.redAccent,
+                () {
+                  Get.back();
+                  chatVM.deleteMessageForEveryone(
+                    chatId: chatId,
+                    messageId: messageId,
+                  );
+                },
+              ),
+            const SizedBox(height: 15),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildActionTile(
+    IconData icon,
+    String title,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return ListTile(
+      leading: Icon(icon, color: color, size: 28),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: color,
+          fontSize: 16,
+        ),
+      ),
+      onTap: onTap,
+    );
   }
 }

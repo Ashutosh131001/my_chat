@@ -10,9 +10,9 @@ class Chatmessageveiwmodel extends GetxController {
 
   var issending = false.obs;
 
-  /* ----------------------------------------------------
-   * 🔹 CREATE OR GET CHAT ROOM
-   * --------------------------------------------------*/
+  
+    // CREATE OR GET CHAT ROOM
+   
   Future<ChatRoomModel> getorcreatechatroom(String otheruserid) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -38,13 +38,13 @@ class Chatmessageveiwmodel extends GetxController {
       return chatRoom; // ✅ RETURN
     }
 
-    // 🔥 EXISTING CHATROOM
+    //  EXISTING CHATROOM
     return ChatRoomModel.fromMap(doc.data() as Map<String, dynamic>);
   }
 
-  /* ----------------------------------------------------
-   * 🔹 SEND MESSAGE
-   * --------------------------------------------------*/
+  
+    // SEND MESSAGE
+  
   Future<void> sendmessage({
     required String chatid,
     required String text,
@@ -80,9 +80,7 @@ class Chatmessageveiwmodel extends GetxController {
         'lastMessage': text,
         'lastMessageTime': timestamp,
 
-        // REMOVED: 'clearedBy.${user.uid}': FieldValue.delete(),
-        // By removing the line above, the "clear" timestamp stays in place.
-        // New messages will naturally be > clearTimestamp, so they will show up.
+        
       });
     } catch (e) {
       Get.snackbar("Error", e.toString());
@@ -91,35 +89,34 @@ class Chatmessageveiwmodel extends GetxController {
     }
   }
 
-  /* ----------------------------------------------------
-   * 🔹 STREAM MESSAGES (REAL TIME)
-   * --------------------------------------------------*/
+  
+   // STREAM MESSAGES (REAL TIME)
+   
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMessages({
     required String chatId,
     required String myUserId,
     required Map<String, int> clearedBy,
   }) {
-    // Get the timestamp when THIS user last cleared the chat
-    // If they never cleared it, we use 0 to show all messages
+   
     int clearTimestamp = clearedBy[myUserId] ?? 0;
 
     return _firestore
         .collection('chatrooms')
         .doc(chatId)
         .collection('messages')
-        // Only show messages sent AFTER the clear timestamp
         .where('timestamp', isGreaterThan: clearTimestamp)
         .orderBy('timestamp', descending: false)
         .snapshots();
   }
 
-  /* ----------------------------------------------------
-   * 🔹 MARK MESSAGES AS SEEN (DOUBLE TICK)
-   * --------------------------------------------------*/
+ 
+   // MARK MESSAGES AS SEEN (DOUBLE TICK)
+   
   Future<void> markMessagesAsSeen(String chatId) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
+    // Get all messages sent by the OTHER user that I haven't seen yet
     final snapshot = await _firestore
         .collection('chatrooms')
         .doc(chatId)
@@ -127,16 +124,20 @@ class Chatmessageveiwmodel extends GetxController {
         .where('senderId', isNotEqualTo: user.uid)
         .get();
 
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final List seenBy = data['seenBy'] ?? [];
+    WriteBatch batch = _firestore.batch();
+    bool hasUpdates = false;
 
+    for (var doc in snapshot.docs) {
+      final List seenBy = doc.data()['seenBy'] ?? [];
       if (!seenBy.contains(user.uid)) {
-        await doc.reference.update({
+        batch.update(doc.reference, {
           'seenBy': FieldValue.arrayUnion([user.uid]),
         });
+        hasUpdates = true;
       }
     }
+
+    if (hasUpdates) await batch.commit();
   }
 
   /* ----------------------------------------------------
@@ -159,9 +160,9 @@ class Chatmessageveiwmodel extends GetxController {
         });
   }
 
-  /* ----------------------------------------------------
-   * 🔹 DELETE MESSAGE FOR EVERYONE
-   * --------------------------------------------------*/
+ 
+    // DELETE MESSAGE FOR EVERYONE
+   
   Future<void> deleteMessageForEveryone({
     required String chatId,
     required String messageId,
