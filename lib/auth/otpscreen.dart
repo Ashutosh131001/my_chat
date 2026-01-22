@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:my_chat/viewmodels/auth_veiwmodel.dart';
+import 'package:my_chat/auth/auth_veiwmodel.dart';
 
 class OTPVerifyView extends StatelessWidget {
   final String verificationId;

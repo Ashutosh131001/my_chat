@@ -4,10 +4,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:my_chat/models/auth_model.dart';
-import 'package:my_chat/veiws/chat.dart';
-import 'package:my_chat/veiws/otpscreen.dart';
-import 'package:my_chat/veiws/user_detail_page.dart';
+import 'package:my_chat/auth/auth_model.dart';
+import 'package:my_chat/chatlist/chat.dart';
+import 'package:my_chat/auth/otpscreen.dart';
+import 'package:my_chat/auth/user_detail_page.dart';
 
 class AuthViewModel extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;

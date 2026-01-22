@@ -6,7 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:my_chat/models/user_model.dart';
+import 'package:my_chat/chatlist/user_model.dart';
+
 
 class ProfileViewModel extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;

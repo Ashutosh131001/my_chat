@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:my_chat/viewmodels/otheruserprofileveiwmodel.dart';
+import 'package:my_chat/profile/otheruserprofileveiwmodel.dart';
 
 class OtherUserProfileView extends StatelessWidget {
   final String userid;

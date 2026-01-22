@@ -3,10 +3,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:my_chat/controllers/presensecontroller.dart';
 
 import 'firebase_options.dart';
-import 'package:my_chat/veiws/chat.dart';
-import 'package:my_chat/veiws/login_veiw.dart';
+import 'package:my_chat/chatlist/chat.dart';
+import 'package:my_chat/auth/login_veiw.dart';
 
 /// 🔥 REQUIRED for background / terminated notifications
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -16,6 +17,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  Get.put(PresenceController());
 
   // 🔥 Register background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

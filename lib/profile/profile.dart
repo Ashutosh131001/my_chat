@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:my_chat/viewmodels/ProfileVeiwModel.dart';
+import 'package:my_chat/profile/profileveiwmodel.dart';
+
 
 class ProfileView extends StatelessWidget {
   final ProfileViewModel profileVM = Get.put(ProfileViewModel());

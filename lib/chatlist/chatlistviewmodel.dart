@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:my_chat/models/chatroommodel.dart';
-import 'package:my_chat/models/contactusermodel.dart';
+import 'package:my_chat/contactspage/contactusermodel.dart';
+import 'package:my_chat/chatpage/chatroommodel.dart';
+
 
 class ChatListItem {
   final ChatRoomModel chatroom;

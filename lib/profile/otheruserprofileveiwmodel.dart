@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:my_chat/models/user_model.dart';
+import 'package:my_chat/chatlist/user_model.dart';
 
 
 class OtherUserProfileViewModel extends GetxController {

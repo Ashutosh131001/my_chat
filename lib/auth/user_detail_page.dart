@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:my_chat/viewmodels/user_veiw_model.dart';
+import 'package:my_chat/auth/user_veiw_model.dart';
 
 class UserDetailsView extends StatelessWidget {
   UserDetailsView({super.key});
