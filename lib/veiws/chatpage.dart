@@ -2,8 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:my_chat/models/contactusermodel.dart';
-import 'package:my_chat/veiws/otheruserprofileveiw.dart';
+import 'package:my_chat/contactspage/contactusermodel.dart';
+
+import 'package:my_chat/profile/otheruserprofileveiw.dart';
 import 'package:my_chat/viewmodels/chatroomveiwmodel.dart';
 
 class ChatPage extends StatelessWidget {
