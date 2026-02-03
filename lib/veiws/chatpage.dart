@@ -39,7 +39,7 @@ class ChatPage extends StatelessWidget {
             title: InkWell(
               borderRadius: BorderRadius.circular(30),
               onTap: () {
-                Get.to(() => OtherUserProfileView(userid: otherUser.uid));
+                Get.to(() => OtherUserProfileView(user: otherUser));
               },
               child: Row(
                 children: [

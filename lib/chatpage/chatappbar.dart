@@ -6,7 +6,6 @@ import 'package:my_chat/contactspage/contactusermodel.dart';
 import 'package:my_chat/controllers/prescensebuilder.dart';
 import 'package:my_chat/profile/otheruserprofileveiw.dart';
 
-
 class ChatHeader extends StatelessWidget {
   final usermodel otherUser;
 
@@ -47,7 +46,7 @@ class ChatHeader extends StatelessWidget {
                 Expanded(
                   child: InkWell(
                     onTap: () => Get.to(
-                      () => OtherUserProfileView(userid: otherUser.uid),
+                      () => OtherUserProfileView(user: otherUser),
                       transition: Transition.cupertino,
                     ),
                     child: Row(
@@ -121,15 +120,6 @@ class ChatHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.videocam_outlined,
-                    color: Colors.blueAccent,
-                  ),
-                  onPressed: () {
-                    Get.snackbar('Sorry', "Feature under progress");
-                  },
                 ),
               ],
             ),

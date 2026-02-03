@@ -1,19 +1,23 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.my_chat">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- 🌐 Internet access for Firebase / API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- 📞 Contacts permission (needed for reading contacts) -->
+    <!-- 📞 Contacts permission -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-    <!-- 🖼️ Android 13+ media permissions (optional but safe for gallery access) -->
+    <!-- 🖼️ Android 13+ media permissions -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
-    <!-- ⚡ Legacy permissions for Android 12 and below -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <!-- ⚡ Legacy permissions -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
 
     <application
         android:name="${applicationName}"
@@ -39,4 +43,5 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+
 </manifest>

@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:my_chat/auth/auth_veiwmodel.dart'; // Keep your existing filename
-import 'package:my_chat/auth/login_veiw.dart';    // Keep your existing filename
+import 'package:my_chat/auth/login_veiw.dart'; // Keep your existing filename
 import 'package:my_chat/utils/utils.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class SettingsViewModel extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -54,13 +56,13 @@ class SettingsViewModel extends GetxController {
 
     await _auth.verifyPhoneNumber(
       phoneNumber: user.phoneNumber!,
-      
+
       // Auto-resolution (Android mostly)
       verificationCompleted: (credential) async {
         await _reauthenticateAndDelete(credential);
         isLoading.value = false; // Ensure loading stops
       },
-      
+
       // ⚠️ FIX 2: Handle Errors Correctly
       verificationFailed: (e) {
         isLoading.value = false; // CRITICAL: Stop the spinner!
@@ -69,18 +71,15 @@ class SettingsViewModel extends GetxController {
           type: SnackbarType.error,
         );
       },
-      
+
       codeSent: (verificationId, _) {
         _verificationId = verificationId;
         isLoading.value = false; // Stop spinner so user can enter OTP
-        
+
         // Optional: Show success message
-        Utils.showsnackbar(
-          message: "OTP Sent", 
-          type: SnackbarType.success
-        );
+        Utils.showsnackbar(message: "OTP Sent", type: SnackbarType.success);
       },
-      
+
       codeAutoRetrievalTimeout: (verificationId) {
         _verificationId = verificationId;
         isLoading.value = false;
@@ -134,14 +133,23 @@ class SettingsViewModel extends GetxController {
 
       // 4. Redirect
       Get.offAll(() => PhoneLoginView());
-      
     } catch (e) {
       Utils.showsnackbar(
         message: "Delete failed: $e",
         type: SnackbarType.error,
       );
       // If error happens here, we must stop loading manually since this is called from callbacks
-      isLoading.value = false; 
+      isLoading.value = false;
+    }
+  }
+
+  void openPrivacyPolicy() async {
+    final url = Uri.parse(
+      "https://raw.githubusercontent.com/Ashutosh131001/MyChat_PrivacyPolicy/main/MyChat_Privacy_Policy.pdf",
+    );
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      Get.snackbar("Error", "Could not open Privacy Policy");
     }
   }
 }

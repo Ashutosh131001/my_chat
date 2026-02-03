@@ -54,13 +54,17 @@ class ChatListUtils {
               ),
               onTap: () async {
                 Get.back();
-                await FirebaseFirestore.instance
-                    .collection('chatrooms')
-                    .doc(chatId)
-                    .update({
-                      'clearedBy.$currentUid':
-                          DateTime.now().millisecondsSinceEpoch,
-                    });
+
+                if (chatId.isNotEmpty) {
+                  await FirebaseFirestore.instance
+                      .collection('chatrooms')
+                      .doc(chatId) // 👈 This will now be safe
+                      .set({
+                        'clearedBy': {
+                          currentUid: DateTime.now().millisecondsSinceEpoch,
+                        },
+                      }, SetOptions(merge: true));
+                }
               },
             ),
             const SizedBox(height: 15),

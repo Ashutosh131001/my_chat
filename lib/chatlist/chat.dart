@@ -60,7 +60,7 @@ class ChatListPage extends StatelessWidget {
                 centerTitle: false,
                 titlePadding: EdgeInsets.only(left: 20, bottom: 16),
                 title: Text(
-                  "Messages",
+                  "Chats",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,

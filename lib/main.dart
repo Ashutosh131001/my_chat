@@ -3,13 +3,17 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:hive_flutter/hive_flutter.dart'; // 🟢 1. Import Hive
+import 'package:my_chat/chatlist/user_model.dart';
+import 'package:my_chat/chatpage/chatroommodel.dart';
+import 'package:my_chat/chatpage/messagemodel.dart';
+import 'package:my_chat/contactspage/contactusermodel.dart';
 import 'package:my_chat/controllers/presensecontroller.dart';
 
 import 'firebase_options.dart';
 import 'package:my_chat/chatlist/chat.dart';
 import 'package:my_chat/auth/login_veiw.dart';
 
-/// 🔥 REQUIRED for background / terminated notifications
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
@@ -17,6 +21,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 🟢 2. Initialize the Local Database (Brain)
+  await Hive.initFlutter();
+
+  // 🟢 3. Open a "Box" (Database File)
+  // We open this now so we don't have to wait for it later in the UI.
+  Hive.registerAdapter(UserModelAdapter());
+  Hive.registerAdapter(usermodelAdapter());
+  Hive.registerAdapter(ChatRoomModelAdapter());  // ID: 2 (New)
+  Hive.registerAdapter(ChatListItemAdapter());   // ID: 3 (New)
+  Hive.registerAdapter(MessageTypeAdapter());    // ID: 4 (Enum)
+  Hive.registerAdapter(MessageModelAdapter());   // ID: 5 (Model)
+  await Hive.openBox('storage');
+  await Hive.openBox<usermodel>('contacts_cache');
+  await Hive.openBox<ChatListItem>('chat_list_cache');
+
+  // NOTE: In the next step (Model), we will come back here
+  // to add "Hive.registerAdapter(UserModelAdapter());"
+
   Get.put(PresenceController());
 
   // 🔥 Register background handler
@@ -33,11 +56,14 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'My_Chat',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(),
+      theme:
+          ThemeData.light(), // We will optimize this for Dark Mode later too!
       home: const AuthWrapper(),
     );
   }
 }
+
+// ... Keep the rest of your AuthWrapper code exactly the same ...
 
 /// 🔥 Automatically decides login state
 class AuthWrapper extends StatefulWidget {

@@ -1,18 +1,24 @@
 {
   "project_info": {
     "project_number": "1085637723112",
+    "firebase_url": "https://reddit-86621-default-rtdb.firebaseio.com",
     "project_id": "reddit-86621",
     "storage_bucket": "reddit-86621.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1085637723112:android:4c881975ed239dccef1a5d",
+        "mobilesdk_app_id": "1:1085637723112:android:a4ac9bbbcd003d79ef1a5d",
         "android_client_info": {
-          "package_name": "com.example.my_chat"
+          "package_name": "com.ashuverse.mychat"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1085637723112-k4s0ubclph6b7p9lamb98igsvnpsk26a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDQVhxCyugbw1CV3ITHEwXp38N8Uh_Zh5w"
@@ -20,7 +26,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085637723112-k4s0ubclph6b7p9lamb98igsvnpsk26a.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1085637723112-0v8mf8mcj2jd0jfjqsk7mit28lt47dkj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myChat"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +49,12 @@
           "package_name": "com.example.reddit"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1085637723112-k4s0ubclph6b7p9lamb98igsvnpsk26a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDQVhxCyugbw1CV3ITHEwXp38N8Uh_Zh5w"
@@ -39,7 +62,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085637723112-k4s0ubclph6b7p9lamb98igsvnpsk26a.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1085637723112-0v8mf8mcj2jd0jfjqsk7mit28lt47dkj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myChat"
+              }
+            }
+          ]
         }
       }
     }

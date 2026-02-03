@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart'; // 🟢 Import Cache Package
 import 'package:flutter/material.dart';
 
 class FullScreenImageView extends StatelessWidget {
@@ -27,18 +28,33 @@ class FullScreenImageView extends StatelessWidget {
         itemBuilder: (context, index) {
           return Center(
             child: InteractiveViewer(
-              panEnabled: true,
+              panEnabled: true, // Allow moving around when zoomed in
               minScale: 0.5,
               maxScale: 4.0,
-              child: Image.network(
-                imageUrls[index],
+              child: CachedNetworkImage( // 🟢 USES DISK CACHE
+                imageUrl: imageUrls[index],
                 fit: BoxFit.contain,
-                loadingBuilder: (ctx, child, progress) {
-                  if (progress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  );
-                },
+                
+                // Show spinner while loading from disk or internet
+                placeholder: (context, url) => const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+                
+                // Show broken image icon if download fails AND not in cache
+                errorWidget: (context, url, error) => Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.broken_image, color: Colors.grey, size: 50),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Image not available offline",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
