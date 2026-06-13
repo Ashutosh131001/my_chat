@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_chat/chatpage/chatmessageveiwmodel.dart';
+import 'package:my_chat/chatpage/vm.dart';
 
 class InputPod extends StatelessWidget {
   final String chatId;
@@ -36,13 +37,16 @@ class InputPod extends StatelessWidget {
           children: [
             // 🔹 IMAGE PREVIEW AREA
             Obx(() {
-              if (chatVM.selectedImages.isEmpty) return const SizedBox.shrink();
+              // 🟢 FIX 1: Point to mediaService for selectedImages
+              if (chatVM.mediaService.selectedImages.isEmpty)
+                return const SizedBox.shrink();
               return Container(
                 height: 100,
                 padding: const EdgeInsets.only(bottom: 10),
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: chatVM.selectedImages.length,
+                  // 🟢 FIX 2
+                  itemCount: chatVM.mediaService.selectedImages.length,
                   itemBuilder: (context, index) {
                     return Stack(
                       children: [
@@ -56,7 +60,10 @@ class InputPod extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(15),
                             image: DecorationImage(
-                              image: FileImage(chatVM.selectedImages[index]),
+                              // 🟢 FIX 3
+                              image: FileImage(
+                                chatVM.mediaService.selectedImages[index],
+                              ),
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -65,7 +72,9 @@ class InputPod extends StatelessWidget {
                           right: 0,
                           top: 0,
                           child: GestureDetector(
-                            onTap: () => chatVM.selectedImages.removeAt(index),
+                            // 🟢 FIX 4
+                            onTap: () => chatVM.mediaService.selectedImages
+                                .removeAt(index),
                             child: const CircleAvatar(
                               radius: 12,
                               backgroundColor: Colors.redAccent,
@@ -90,7 +99,8 @@ class InputPod extends StatelessWidget {
                 const SizedBox(width: 5),
                 // 📎 ATTACH BUTTON
                 InkWell(
-                  onTap: () => chatVM.pickImagesFromGallery(),
+                  // 🟢 FIX 5: Point to mediaService for the image picker function
+                  onTap: () => chatVM.mediaService.pickImagesFromGallery(),
                   child: const Padding(
                     padding: EdgeInsets.all(8.0),
                     child: Icon(
@@ -102,7 +112,6 @@ class InputPod extends StatelessWidget {
                 ),
 
                 // ✨ MAGIC AI BUTTON
-                // We use Obx here so the icon changes to a spinner when loading
                 Obx(
                   () => GestureDetector(
                     onTap: chatVM.isFixingGrammar.value
@@ -133,7 +142,6 @@ class InputPod extends StatelessWidget {
                 // TEXT FIELD
                 Expanded(
                   child: TextField(
-                    // 🔥 CONNECTED TO CONTROLLER IN VM
                     controller: chatVM.messageController,
                     maxLines: null,
                     textInputAction: TextInputAction.newline,
@@ -156,11 +164,13 @@ class InputPod extends StatelessWidget {
                     onTap: chatVM.issending.value
                         ? null
                         : () async {
-                            // We don't need to pass text manually anymore
                             final text = chatVM.messageController.text.trim();
 
-                            if (text.isEmpty && chatVM.selectedImages.isEmpty)
+                            // 🟢 FIX 6: Point to mediaService
+                            if (text.isEmpty &&
+                                chatVM.mediaService.selectedImages.isEmpty) {
                               return;
+                            }
 
                             await chatVM.sendMessage(chatId: chatId);
 

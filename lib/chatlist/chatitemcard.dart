@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_chat/chatlist/chatlistutils.dart';
-import 'package:my_chat/chatpage/cHATpg.dart'; // Ensure correct path
-
-// Import your models
-import 'package:my_chat/contactspage/contactusermodel.dart'; 
-import 'package:my_chat/chatpage/chatroommodel.dart'; 
+import 'package:my_chat/chatpage/cHATpg.dart'; 
+import 'package:my_chat/contactspage/contactusermodel.dart';
+import 'package:my_chat/chatpage/chatroommodel.dart';
 
 class ChatItemCard extends StatelessWidget {
   final usermodel user;
@@ -68,19 +66,6 @@ class ChatItemCard extends StatelessWidget {
                           ),
                         )
                       : null,
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    height: 14,
-                    width: 14,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2.5),
-                    ),
-                  ),
                 ),
               ],
             ),

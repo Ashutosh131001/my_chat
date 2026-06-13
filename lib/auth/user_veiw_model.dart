@@ -24,6 +24,16 @@ class UserVeiwModel extends GetxController {
   final nameController = TextEditingController();
   final aboutController = TextEditingController();
 
+  // Local tracking variable to manage token updates safely
+  String? _lastKnownToken;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Automatically start listening for background token refreshes
+    initNotificationListeners();
+  }
+
   /// 🖼️ Pick image from gallery
   Future<void> pickImage() async {
     try {
@@ -73,13 +83,14 @@ class UserVeiwModel extends GetxController {
         lastSeen: DateTime.now().millisecondsSinceEpoch,
       );
 
+      // 🔥 FIX 1: Added SetOptions(merge: true) here so fields like fcmTokens aren't wiped out!
       await _firestore
           .collection('users')
           .doc(currentuser.uid)
-          .set(userdata.toMap());
-          await requestNotificationPermission();
-await saveFcmToken();
-
+          .set(userdata.toMap(), SetOptions(merge: true));
+          
+      await requestNotificationPermission();
+      await saveFcmToken();
 
       usermodel.value = userdata;
       Get.snackbar('Success', 'Profile created successfully 🎉');
@@ -118,6 +129,9 @@ await saveFcmToken();
       if (doc.exists && doc.data() != null) {
         final data = doc.data() as Map<String, dynamic>;
         usermodel.value = UserModel.fromMap(data);
+        
+        // Refresh/re-verify the token when fetching user data
+        await saveFcmToken();
       } else {
         Get.snackbar('Error', 'No data found for this user');
       }
@@ -147,13 +161,6 @@ await saveFcmToken();
     }
   }
 
-  @override
-  void onClose() {
-    nameController.dispose();
-    aboutController.dispose();
-    super.onClose();
-  }
-
   /// 🔔 Request notification permission
   Future<void> requestNotificationPermission() async {
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
@@ -172,8 +179,41 @@ await saveFcmToken();
     final token = await _messaging.getToken();
     if (token == null) return;
 
+    _lastKnownToken = token;
+
     await _firestore.collection('users').doc(currentUser.uid).update({
       'fcmTokens': FieldValue.arrayUnion([token]),
     });
+  }
+
+  /// 🔄 FIX 2: Added token refresh listener to capture token changes automatically
+  void initNotificationListeners() {
+    _messaging.onTokenRefresh.listen((newToken) async {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return;
+
+      final userDoc = _firestore.collection('users').doc(currentUser.uid);
+
+      // Clean up the old, expired token from the array
+      if (_lastKnownToken != null && _lastKnownToken != newToken) {
+        await userDoc.update({
+          'fcmTokens': FieldValue.arrayRemove([_lastKnownToken]),
+        });
+      }
+
+      // Append the new one
+      await userDoc.update({
+        'fcmTokens': FieldValue.arrayUnion([newToken]),
+      });
+
+      _lastKnownToken = newToken;
+    });
+  }
+
+  @override
+  void onClose() {
+    nameController.dispose();
+    aboutController.dispose();
+    super.onClose();
   }
 }

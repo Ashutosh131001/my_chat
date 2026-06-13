@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:my_chat/chatpage/chatmessageveiwmodel.dart';
 import 'package:my_chat/chatpage/chatutils.dart';
 import 'package:my_chat/chatpage/fullscreenphoto.dart';
+import 'package:my_chat/chatpage/vm.dart';
 
 class MessageBubble extends StatelessWidget {
   final Map msg;
@@ -16,7 +17,7 @@ class MessageBubble extends StatelessWidget {
   final String msgId;
 
   // 🟢 Inject Controller
-  final Chatmessageveiwmodel controller = Get.find<Chatmessageveiwmodel>();
+  final Chatmessageveiwmodel controller = Get.put(Chatmessageveiwmodel());
 
   MessageBubble({
     super.key,

@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
+import 'package:my_chat/chatlist/chatlistviewmodel.dart';
 
 class ChatListUtils {
+  final Chatlistviewmodel vm = Get.put(Chatlistviewmodel());
   // Get Initials (e.g., "Ashutosh" -> "A")
   static String getInitial(String? name) =>
       (name == null || name.isEmpty) ? "?" : name[0].toUpperCase();
@@ -56,9 +59,33 @@ class ChatListUtils {
                 Get.back();
 
                 if (chatId.isNotEmpty) {
+                  // 🟢 1. OPTIMISTIC UI UPDATE (Instant Deletion)
+                  // Find the active controller and wipe this chat from the screen instantly
+                  try {
+                    final vm = Get.find<Chatlistviewmodel>();
+                    vm.chatList.removeWhere(
+                      (item) => item.chatroom.chatId == chatId,
+                    );
+                  } catch (e) {
+                    print("VM not found: $e");
+                  }
+
+                  // 🟢 2. Instantly wipe the local messages cache
+                  final boxName = 'chat_messages_$chatId';
+                  try {
+                    if (Hive.isBoxOpen(boxName)) {
+                      await Hive.box(boxName).clear();
+                    } else {
+                      await Hive.deleteBoxFromDisk(boxName);
+                    }
+                  } catch (e) {
+                    print("Error clearing local box: $e");
+                  }
+
+                  // 🟢 3. Update Firebase (Happens silently in the background)
                   await FirebaseFirestore.instance
                       .collection('chatrooms')
-                      .doc(chatId) // 👈 This will now be safe
+                      .doc(chatId)
                       .set({
                         'clearedBy': {
                           currentUid: DateTime.now().millisecondsSinceEpoch,

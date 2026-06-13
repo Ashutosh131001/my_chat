@@ -32,19 +32,13 @@ class SettingsView extends GetView<SettingsViewModel> {
             slivers: [
               /* ---------------- APP BAR ---------------- */
               SliverAppBar(
+                automaticallyImplyLeading: false,
                 expandedHeight: 140.0,
                 pinned: true,
                 elevation: 0,
                 scrolledUnderElevation: 0.6,
                 backgroundColor: Colors.white,
-                leading: IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back_ios_new,
-                    color: Color(0xFF1A1A1A),
-                    size: 20,
-                  ),
-                  onPressed: () => Get.back(),
-                ),
+
                 flexibleSpace: const FlexibleSpaceBar(
                   centerTitle: false,
                   titlePadding: EdgeInsets.only(left: 20, bottom: 16),
@@ -74,6 +68,15 @@ class SettingsView extends GetView<SettingsViewModel> {
                           transition: Transition.cupertino,
                           duration: const Duration(milliseconds: 350),
                         );
+                      },
+                    ),
+
+                    // 🔥 NEW OPTION: Manual Notification Trigger Setup
+                    SettingsTile(
+                      icon: Icons.notifications_none_rounded,
+                      title: "Notification Settings",
+                      onTap: () {
+                        controller.handleManualNotificationToggle();
                       },
                     ),
 

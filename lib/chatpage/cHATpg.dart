@@ -1,16 +1,21 @@
 import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+
+// Your App Imports
 import 'package:my_chat/chatpage/chatappbar.dart';
+import 'package:my_chat/chatpage/datepill.dart';
 import 'package:my_chat/chatpage/message_input.dart';
 import 'package:my_chat/chatpage/messagebubble.dart';
-
-// ViewModels & Models
+import 'package:my_chat/chatpage/vm.dart';
 import 'package:my_chat/contactspage/contactusermodel.dart';
 import 'package:my_chat/chatpage/chatmessageveiwmodel.dart';
-import 'package:my_chat/chatpage/chatroommodel.dart'; // Needed for ChatListItem box
+import 'package:my_chat/chatpage/chatroommodel.dart';
+
+// 🟢 Import our new isolated Date Widget
 
 class pageofchat extends StatefulWidget {
   final usermodel otherUser;
@@ -22,7 +27,6 @@ class pageofchat extends StatefulWidget {
 }
 
 class _pageofchatState extends State<pageofchat> {
-  // We use Get.put to ensure the controller exists
   final Chatmessageveiwmodel chatVM = Get.put(Chatmessageveiwmodel());
   final ScrollController _scrollController = ScrollController();
   final String currentUid = FirebaseAuth.instance.currentUser!.uid;
@@ -33,19 +37,18 @@ class _pageofchatState extends State<pageofchat> {
   void initState() {
     super.initState();
 
-    // ⚡ 1. Calculate Chat ID Instantly (No Database Call needed!)
-    // Standard logic: Combine UIDs alphabetically
+    // ⚡ 1. Calculate Chat ID Instantly
     List<String> ids = [currentUid, widget.otherUser.uid];
     ids.sort();
     chatId = ids.join("_");
 
-    // ⚡ 2. Try to find "ClearedBy" data from our offline cache
-    // This ensures we don't show deleted messages even if offline
+    // ⚡ 2. Offline Cache Check
     Map<String, int> clearedBy = {};
     try {
+     
+
       if (Hive.isBoxOpen('chat_list_cache')) {
         final box = Hive.box<ChatListItem>('chat_list_cache');
-        // Find the chat item that matches this ID
         final item = box.values.firstWhereOrNull(
           (item) => item.chatroom.chatId == chatId,
         );
@@ -57,7 +60,7 @@ class _pageofchatState extends State<pageofchat> {
       print("Cache check skipped: $e");
     }
 
-    // ⚡ 3. Initialize the Engine
+    // ⚡ 3. Initialize Engine
     chatVM.initChat(chatId, currentUid, clearedBy);
   }
 
@@ -82,44 +85,68 @@ class _pageofchatState extends State<pageofchat> {
             ),
           ),
 
-          /* -------- LAYER 2: MESSAGES (Now Offline Ready) -------- */
+          /* -------- LAYER 2: MESSAGES -------- */
           Column(
             children: [
               Expanded(
-                // 🔥 NO STREAM BUILDER! We use Obx for instant updates.
                 child: Obx(() {
-                  // While Hive loads (usually < 10ms), show nothing or loader
-                  // But usually, this is instant.
                   if (chatVM.messages.isEmpty) {
-                    // Optional: You could show a "Say Hi" placeholder here
-                    // But we return empty container to avoid flickering
                     return const SizedBox.shrink();
                   }
 
                   return ListView.builder(
                     controller: _scrollController,
-                    reverse: true, // Show newest at bottom (standard chat)
+                    reverse: true, // Show newest at bottom
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 140),
-                    // We reverse the list from the controller to match ListView.reverse
                     itemCount: chatVM.messages.length,
                     itemBuilder: (context, index) {
-                      // Get message from Controller (Obs List)
-                      // Note: Controller list is Oldest -> Newest.
-                      // Since ListView is reversed, we need to invert the index access
-                      // or simply reverse the list in logic.
-                      // EASIEST WAY: Reverse the access index
                       final reversedIndex = chatVM.messages.length - 1 - index;
                       final msgModel = chatVM.messages[reversedIndex];
-
                       final bool isMe = msgModel.senderId == currentUid;
 
-                      return MessageBubble(
-                        // ⚠️ Convert Model back to Map for your existing Bubble widget
+                      // 🗓️ DATE HEADER LOGIC
+                      bool showDateHeader = false;
+                      if (reversedIndex == 0) {
+                        showDateHeader =
+                            true; // First message always gets a date
+                      } else {
+                        final previousMsg = chatVM.messages[reversedIndex - 1];
+                        final currentDate = DateTime.fromMillisecondsSinceEpoch(
+                          msgModel.timestamp,
+                        );
+                        final previousDate =
+                            DateTime.fromMillisecondsSinceEpoch(
+                              previousMsg.timestamp,
+                            );
+
+                        // If the day changed, show the header!
+                        if (currentDate.year != previousDate.year ||
+                            currentDate.month != previousDate.month ||
+                            currentDate.day != previousDate.day) {
+                          showDateHeader = true;
+                        }
+                      }
+
+                      // 💬 CREATE BUBBLE
+                      Widget bubble = MessageBubble(
                         msg: msgModel.toMap(),
                         isMe: isMe,
                         chatId: chatId,
                         msgId: msgModel.messageId,
                       );
+
+                      // 🎯 RENDER BUBBLE + DATE PILL
+                      if (showDateHeader) {
+                        return Column(
+                          children: [
+                            // 🟢 Use our imported widget!
+                            DatePill(timestamp: msgModel.timestamp),
+                            bubble,
+                          ],
+                        );
+                      }
+
+                      return bubble;
                     },
                   );
                 }),
