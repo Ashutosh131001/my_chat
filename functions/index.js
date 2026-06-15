@@ -3,61 +3,71 @@ const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-/**
- * 🔔 Send notification when a new message is created
- */
 exports.sendChatNotification = onDocumentCreated(
   "chatrooms/{chatId}/messages/{messageId}",
   async (event) => {
     const messageData = event.data.data();
-
     if (!messageData) return;
 
     const senderId = messageData.senderId;
-    const text = messageData.text;
-    const chatId = messageData.chatId;
+    const isEncrypted = messageData.isEncrypted === true;
+    const chatId = event.params.chatId;
 
-    // Get chatroom
+    // 1. Get Sender Info for the notification title
+    const senderDoc = await admin
+      .firestore()
+      .collection("users")
+      .doc(senderId)
+      .get();
+    const senderName = senderDoc.exists ? senderDoc.data().name : "New Message";
+
+    // 2. Get Chatroom to identify the receiver
     const chatDoc = await admin
       .firestore()
       .collection("chatrooms")
       .doc(chatId)
       .get();
-
     if (!chatDoc.exists) return;
 
     const participants = chatDoc.data().participants;
-
-    // Receiver = the one who is NOT sender
     const receiverId = participants.find((id) => id !== senderId);
     if (!receiverId) return;
 
-    // Get receiver user document
-    const userDoc = await admin
+    // 3. Get Receiver FCM tokens
+    const receiverDoc = await admin
       .firestore()
       .collection("users")
       .doc(receiverId)
       .get();
-
-    if (!userDoc.exists) return;
-
-    const tokens = userDoc.data().fcmTokens || [];
+    const tokens = receiverDoc.exists ? receiverDoc.data().fcmTokens || [] : [];
     if (tokens.length === 0) return;
+
+    // 4. Handle Content Preview
+    // We check if it's encrypted. If it is, we show a generic "Secure Message"
+    // to protect privacy and avoid showing gibberish.
+    let notificationBody;
+    if (isEncrypted) {
+      notificationBody = "🔒 Secure message";
+    } else {
+      notificationBody = messageData.text || "📷 Attachment received";
+    }
 
     const payload = {
       notification: {
-        title: "New Chat Message",
-        body: text || "New message received",
+        title: senderName, // Much better UX
+        body: notificationBody,
       },
       data: {
         chatId: chatId,
         senderId: senderId,
+        click_action: "FLUTTER_NOTIFICATION_CLICK", // Standard for Flutter
       },
     };
 
+    // 5. Send
     await admin.messaging().sendEachForMulticast({
       tokens: tokens,
       ...payload,
     });
-  }
+  },
 );
