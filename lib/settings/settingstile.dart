@@ -12,24 +12,28 @@ class SettingsTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
-    this.iconColor = Colors.blueAccent,
-    this.textColor = const Color(0xFF1A1A1A),
+    // ⚡ Updated default colors to match our Premium Dark ecosystem
+    this.iconColor = const Color(0xFF00E5FF), // Default: Electric Cyan
+    this.textColor = const Color(0xFFF5F5F7), // Default: Crisp Off-White
   });
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 DESIGN TOKENS
+    const Color surfaceColor = Color(0xFF161A22); // Premium Obsidian Surface
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFFF1F1F1),
-          width: 1.5,
-        ),
+        // 💧 Hairline reflective glass edge
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 0.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withOpacity(
+              0.15,
+            ), // Deeper shadow for dark canvas
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -41,38 +45,48 @@ class SettingsTile extends StatelessWidget {
           color: Colors.transparent,
           child: ListTile(
             onTap: onTap,
-            contentPadding: const EdgeInsets.all(16),
+            // 🌟 Subtle interaction layer when tapped
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            splashColor: iconColor.withOpacity(0.05),
 
-            /* -------- ICON -------- */
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+
+            /* -------- 💎 ICON GLASS WELL -------- */
             leading: Container(
               height: 48,
               width: 48,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF0F3F8),
+              decoration: BoxDecoration(
+                // Automatically creates a translucent, colored glass background matching the icon
+                color: iconColor.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: iconColor,
-                size: 22,
-              ),
+              child: Icon(icon, color: iconColor, size: 22),
             ),
 
-            /* -------- TITLE -------- */
+            /* -------- 📝 TITLE -------- */
             title: Text(
               title,
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: textColor,
+                letterSpacing: -0.3, // Cinematic typography tracking
               ),
             ),
 
-            /* -------- ARROW -------- */
-            trailing: const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: Colors.grey,
+            /* -------- ➡️ SUBTLE ARROW -------- */
+            trailing: Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: Colors.white.withOpacity(0.15), // Elegant, muted chevron
+              ),
             ),
           ),
         ),

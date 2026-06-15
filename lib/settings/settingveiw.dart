@@ -1,54 +1,76 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:my_chat/feedback/sendfeedback.dart';
 import 'package:my_chat/profile/profile.dart';
 import 'package:my_chat/settings/otpscreen.dart';
 import 'package:my_chat/settings/settingstile.dart';
-import 'package:my_chat/settings/settingsveiwmodel.dart'; // Ensure filename matches too!
+import 'package:my_chat/settings/settingsveiwmodel.dart';
 
-// 1. Rename to SettingsView (Standard naming)
-// 2. Extend GetView to automatically get 'controller'
 class SettingsView extends GetView<SettingsViewModel> {
   SettingsView({super.key});
   final SettingsViewModel vm = Get.put(SettingsViewModel());
 
+  // 🎨 DESIGN TOKENS
+  static const Color bgCanvas = Color(0xFF0A0C10); // Deep Premium Void
+  static const Color surfaceColor = Color(0xFF161A22); // Obsidian Dialogs
+  static const Color textPrimary = Color(0xFFF5F5F7); // Crisp Off-White
+  static const Color glassSurface = Color(0x66161A22); // Liquid Glass
+  static const Color accentCyan = Color(0xFF00E5FF); // Electric Cyan
+  static const Color cyberRed = Color(0xFFFF453A); // Premium Destructive Red
+
   @override
   Widget build(BuildContext context) {
-    // If not using bindings, inject it here.
-    // Ideally, use a Binding class, but this is fine for now.
     Get.put(SettingsViewModel());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFBFBFC),
-      // 3. Stack allows us to overlay the loading spinner on top
-      // instead of replacing the whole screen (looks smoother)
+      backgroundColor: bgCanvas,
       body: Stack(
         children: [
           CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              /* ---------------- APP BAR ---------------- */
+              /* ---------------- 💧 LIQUID GLASS APP BAR ---------------- */
               SliverAppBar(
                 automaticallyImplyLeading: false,
                 expandedHeight: 140.0,
                 pinned: true,
                 elevation: 0,
-                scrolledUnderElevation: 0.6,
-                backgroundColor: Colors.white,
-
-                flexibleSpace: const FlexibleSpaceBar(
-                  centerTitle: false,
-                  titlePadding: EdgeInsets.only(left: 20, bottom: 16),
-                  title: Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1A1A1A),
-                      letterSpacing: -1.0,
+                scrolledUnderElevation: 0,
+                backgroundColor: Colors.transparent,
+                flexibleSpace: ClipRRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: 30,
+                      sigmaY: 30,
+                    ), // Heavy blur
+                    child: FlexibleSpaceBar(
+                      centerTitle: false,
+                      titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                      title: const Text(
+                        'Settings',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: textPrimary,
+                          letterSpacing: -1.0,
+                        ),
+                      ),
+                      background: Container(
+                        decoration: BoxDecoration(
+                          color: glassSurface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.white.withOpacity(
+                                0.06,
+                              ), // Hardware edge
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -60,18 +82,17 @@ class SettingsView extends GetView<SettingsViewModel> {
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     SettingsTile(
-                      icon: Icons.person_outline,
+                      icon: Icons.person_outline_rounded,
                       title: "Profile",
                       onTap: () {
                         Get.to(
-                          () => ProfileView(), // Use a closure () =>
+                          () => ProfileView(),
                           transition: Transition.cupertino,
                           duration: const Duration(milliseconds: 350),
                         );
                       },
                     ),
 
-                    // 🔥 NEW OPTION: Manual Notification Trigger Setup
                     SettingsTile(
                       icon: Icons.notifications_none_rounded,
                       title: "Notification Settings",
@@ -85,7 +106,6 @@ class SettingsView extends GetView<SettingsViewModel> {
                       title: "Privacy Policy",
                       onTap: () {
                         vm.openPrivacyPolicy();
-                        // Open privacy policy
                       },
                     ),
 
@@ -93,7 +113,7 @@ class SettingsView extends GetView<SettingsViewModel> {
                       icon: Icons.feedback_outlined,
                       title: "Send Feedback",
                       onTap: () {
-                        Get.to(FeedbackPage());
+                        Get.to(() => FeedbackPage());
                       },
                     ),
 
@@ -105,22 +125,44 @@ class SettingsView extends GetView<SettingsViewModel> {
 
                     // 🔥 DANGER ZONE SEPARATOR
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Divider(color: Colors.grey.shade200),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              color: Colors.white.withOpacity(0.06),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              "DANGER ZONE",
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: cyberRed.withOpacity(0.6),
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              color: Colors.white.withOpacity(0.06),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     SettingsTile(
                       icon: Icons.delete_forever_rounded,
                       title: "Delete Account",
-                      iconColor: Colors.redAccent,
-                      textColor: Colors.redAccent,
+                      iconColor: cyberRed,
+                      textColor: cyberRed,
                       onTap: () {
-                        // 4. Trigger OTP request first
                         controller.requestDeleteAccountOtp();
-
-                        // 5. Open the dialog
                         Get.dialog(
-                          DeleteAccountOtpDialog(),
+                          DeleteAccountOtpDialog(), // Make sure this dialog is dark themed too!
                           barrierDismissible: false,
                         );
                       },
@@ -131,15 +173,24 @@ class SettingsView extends GetView<SettingsViewModel> {
             ],
           ),
 
-          /* ---------------- LOADING OVERLAY ---------------- */
-          // This sits ON TOP of the scroll view.
-          // Only this part rebuilds when isLoading changes.
+          /* ---------------- 💎 PREMIUM LOADING OVERLAY ---------------- */
           Obx(() {
             return controller.isLoading.value
-                ? Container(
-                    color: Colors.black.withOpacity(0.3),
-                    child: const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
+                ? Positioned.fill(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: 5,
+                        sigmaY: 5,
+                      ), // Blurs the background while loading
+                      child: Container(
+                        color: Colors.black.withOpacity(0.4),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: accentCyan,
+                            strokeWidth: 2.5,
+                          ),
+                        ),
+                      ),
                     ),
                   )
                 : const SizedBox.shrink();
@@ -149,95 +200,116 @@ class SettingsView extends GetView<SettingsViewModel> {
     );
   }
 
-  // Helper for Logout Confirmation
+  // ----------------------------------------------------------------------
+  // 🚪 PREMIUM OBSIDIAN LOGOUT DIALOG
+  // ----------------------------------------------------------------------
   void _showLogoutDialog(BuildContext context) {
     Get.dialog(
       BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4), // Blur background
+        filter: ImageFilter.blur(
+          sigmaX: 10,
+          sigmaY: 10,
+        ), // Heavy blur for focus
         child: Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
           ),
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
+              color: surfaceColor, // Obsidian Base
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+                width: 1,
+              ), // Glass reflection
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
                 ),
               ],
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Hug content
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // 1. Icon with soft background
+                // 1. Glowing Cyber Red Icon
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.1),
+                    color: cyberRed.withOpacity(0.1), // Translucent red well
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: cyberRed.withOpacity(0.2),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
                   child: const Icon(
-                    Icons.logout_rounded,
-                    color: Colors.redAccent,
-                    size: 32,
+                    Icons
+                        .power_settings_new_rounded, // Slightly more aggressive logout icon
+                    color: cyberRed,
+                    size: 36,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // 2. Title & Subtitle
                 Text(
-                  "Log Out",
-                  style: GoogleFonts.poppins(
+                  "Disconnect Session",
+                  style: GoogleFonts.inter(
                     fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1A1A1A),
+                    fontWeight: FontWeight.w800,
+                    color: textPrimary,
+                    letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Text(
-                  "Are you sure you want to end your session? You will need to login again.",
+                  "Are you sure you want to end your secure session? You will need to authenticate again to access your messages.",
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: Colors.grey.shade600,
+                    color: Colors.white.withOpacity(0.5),
                     height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 32),
 
                 // 3. Action Buttons
                 Row(
                   children: [
-                    // Cancel Button
+                    // Premium Ghost Cancel Button
                     Expanded(
                       child: TextButton(
                         onPressed: () => Get.back(),
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: Colors.white.withOpacity(
+                            0.05,
+                          ), // Ghostly background
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         child: Text(
                           "Cancel",
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
+                            color: textPrimary,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
 
-                    // Logout Button (Red)
+                    // Destructive Cyber Red Button
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
@@ -245,19 +317,19 @@ class SettingsView extends GetView<SettingsViewModel> {
                           controller.logout();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: cyberRed,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          shadowColor: Colors.redAccent.withOpacity(0.4),
+                          shadowColor: cyberRed.withOpacity(0.4),
                         ),
                         child: Text(
-                          "Yes, Logout",
-                          style: GoogleFonts.poppins(
+                          "Disconnect",
+                          style: GoogleFonts.inter(
                             fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
@@ -270,9 +342,8 @@ class SettingsView extends GetView<SettingsViewModel> {
           ),
         ),
       ),
-      // Animation Settings
-      transitionDuration: const Duration(milliseconds: 250),
-      transitionCurve: Curves.easeOutBack,
+      transitionDuration: const Duration(milliseconds: 300),
+      transitionCurve: Curves.easeOutQuart,
     );
   }
 }

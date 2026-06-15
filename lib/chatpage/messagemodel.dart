@@ -51,6 +51,10 @@ class MessageModel {
   @HiveField(11)
   final List<String> seenBy;
 
+  // 🚨 NEW: The Encryption Flag
+  @HiveField(12)
+  final bool isEncrypted;
+
   MessageModel({
     required this.messageId,
     required this.chatId,
@@ -64,6 +68,7 @@ class MessageModel {
     this.isDeletedForEveryone = false,
     this.deletedFor = const [],
     this.seenBy = const [],
+    this.isEncrypted = false, // Defaults to false for backward compatibility
   });
 
   /* ---------------- FROM FIRESTORE ---------------- */
@@ -87,6 +92,7 @@ class MessageModel {
       isDeletedForEveryone: map['isDeletedForEveryone'] ?? false,
       deletedFor: List<String>.from(map['deletedFor'] ?? []),
       seenBy: List<String>.from(map['seenBy'] ?? []),
+      isEncrypted: map['isEncrypted'] ?? false, // Read the flag
     );
   }
 
@@ -105,6 +111,7 @@ class MessageModel {
       'isDeletedForEveryone': isDeletedForEveryone,
       'deletedFor': deletedFor,
       'seenBy': seenBy,
+      'isEncrypted': isEncrypted, // Save the flag
     };
   }
 
@@ -117,6 +124,7 @@ class MessageModel {
     bool? isDeletedForEveryone,
     List<String>? deletedFor,
     List<String>? seenBy,
+    bool? isEncrypted,
   }) {
     return MessageModel(
       messageId: messageId,
@@ -131,6 +139,7 @@ class MessageModel {
       isDeletedForEveryone: isDeletedForEveryone ?? this.isDeletedForEveryone,
       deletedFor: deletedFor ?? this.deletedFor,
       seenBy: seenBy ?? this.seenBy,
+      isEncrypted: isEncrypted ?? this.isEncrypted,
     );
   }
 }

@@ -8,6 +8,10 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:my_chat/chatlist/user_model.dart';
 import 'package:my_chat/chatlist/chat.dart';
+import 'package:my_chat/service/encryptedbootservice.dart';
+
+// 🚨 IMPORT YOUR BOOT SERVICE HERE (Adjust the path to match your folder structure)
+// import 'package:my_chat/services/encryption_boot_service.dart';
 
 class UserVeiwModel extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -83,7 +87,7 @@ class UserVeiwModel extends GetxController {
         lastSeen: DateTime.now().millisecondsSinceEpoch,
       );
 
-      // 🔥 FIX 1: Added SetOptions(merge: true) here so fields like fcmTokens aren't wiped out!
+      // 🔥 FIX 1: SetOptions(merge: true) ensures fields like fcmTokens aren't wiped out!
       await _firestore
           .collection('users')
           .doc(currentuser.uid)
@@ -91,6 +95,10 @@ class UserVeiwModel extends GetxController {
           
       await requestNotificationPermission();
       await saveFcmToken();
+
+      // 🚨 THE VAULT TRIGGER (NEW USER) 🚨
+      // Generates their RSA keys and appends the 'publicKey' to the document we just created above
+      await EncryptionBootService.initializeEncryptionProfile();
 
       usermodel.value = userdata;
       Get.snackbar('Success', 'Profile created successfully 🎉');
@@ -186,7 +194,7 @@ class UserVeiwModel extends GetxController {
     });
   }
 
-  /// 🔄 FIX 2: Added token refresh listener to capture token changes automatically
+  /// 🔄 FIX 2: Token refresh listener to capture token changes automatically
   void initNotificationListeners() {
     _messaging.onTokenRefresh.listen((newToken) async {
       final currentUser = _auth.currentUser;

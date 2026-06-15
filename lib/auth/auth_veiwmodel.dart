@@ -8,6 +8,7 @@ import 'package:my_chat/auth/auth_model.dart';
 import 'package:my_chat/chatlist/chat.dart';
 import 'package:my_chat/auth/otpscreen.dart';
 import 'package:my_chat/auth/user_detail_page.dart';
+import 'package:my_chat/service/encryptedbootservice.dart';
 
 class AuthViewModel extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -70,6 +71,7 @@ class AuthViewModel extends GetxController {
   }
 
   /* ---------------- POST LOGIN DECISION ---------------- */
+  /* ---------------- POST LOGIN DECISION ---------------- */
   Future<void> _handlePostLogin() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -78,9 +80,15 @@ class AuthViewModel extends GetxController {
 
     if (!doc.exists) {
       // 🔥 NEW USER
+      // We DO NOT generate keys here yet! Let them set up their profile first.
       Get.offAll(() => UserDetailsView());
     } else {
       // 🔥 EXISTING USER
+      // 🚨 THE VAULT TRIGGER 🚨
+      // Check for their RSA keys (and generate if migrating to the new update) 
+      // before letting them into the chat list.
+      await EncryptionBootService.initializeEncryptionProfile();
+      
       Get.offAll(() => ChatListPage());
     }
   }

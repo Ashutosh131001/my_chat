@@ -1,3 +1,4 @@
+import 'dart:ui'; // 🟢 REQUIRED FOR LIQUID GLASS BLUR
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,11 +12,9 @@ import 'package:my_chat/chatlist/circlebutton.dart';
 import 'package:my_chat/chatlist/emptystate.dart';
 
 // Pages & Auth
-import 'package:my_chat/contactspage/chatlistpage.dart';
+import 'package:my_chat/contactspage/chatlistpage.dart'; // Verify this import matches your contacts page path
 import 'package:my_chat/settings/settingveiw.dart';
-import 'package:my_chat/veiws/staredmessage.dart'; // Check if this import is needed for ContactsView
-
-// Widgets & Utils
+import 'package:my_chat/veiws/staredmessage.dart';
 
 class ChatListPage extends StatelessWidget {
   final Chatlistviewmodel chatListVM = Get.put(Chatlistviewmodel());
@@ -27,15 +26,19 @@ class ChatListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
 
+    // 🎨 THEME CONSTANTS
+    const Color bgColor = Color(0xFF0A0C10); // Deep Midnight Charcoal
+    const Color accentCyan = Color(0xFF00E5FF); // Electric Cyan
+    const Color glassSurface = Color(
+      0x66161A22,
+    ); // 💧 Smoked Translucent Obsidian
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       body: Obx(() {
         if (chatListVM.isLoading.value) {
           return const Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Colors.blueAccent,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2, color: accentCyan),
           );
         }
 
@@ -49,23 +52,45 @@ class ChatListPage extends StatelessWidget {
         return CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            /* -------- APP BAR -------- */
+            /* -------- 💧 LIQUID GLASS SLIVER APP BAR -------- */
             SliverAppBar(
               expandedHeight: 140.0,
               pinned: true,
               elevation: 0,
-              scrolledUnderElevation: 0.5,
-              backgroundColor: Colors.white,
-              flexibleSpace: const FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: EdgeInsets.only(left: 20, bottom: 16),
-                title: Text(
-                  "Chats",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF1A1A1A),
-                    letterSpacing: -1.0,
+              scrolledUnderElevation: 0,
+              backgroundColor:
+                  Colors.transparent, // 🟢 Must be transparent for blur to show
+              flexibleSpace: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(
+                    sigmaX: 30,
+                    sigmaY: 30,
+                  ), // 💧 Heavy fluid blur
+                  child: FlexibleSpaceBar(
+                    centerTitle: false,
+                    titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                    title: const Text(
+                      "Chats",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -1.0,
+                      ),
+                    ),
+                    background: Container(
+                      decoration: BoxDecoration(
+                        color: glassSurface,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.white.withOpacity(
+                              0.06,
+                            ), // Hairline glass reflection
+                            width: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -80,8 +105,7 @@ class ChatListPage extends StatelessWidget {
                     );
                   },
                 ),
-
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
               ],
             ),
 
@@ -106,34 +130,34 @@ class ChatListPage extends StatelessWidget {
         );
       }),
 
-      /* -------- FAB -------- */
+      /* -------- 🚀 GLOWING NEON FAB -------- */
       floatingActionButton: Container(
         height: 65,
         width: 65,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: const LinearGradient(
-            colors: [Color(0xFF1A1A1A), Color(0xFF434343)],
+            colors: [Color(0xFF00E5FF), Color(0xFF0055FF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: const Color(0xFF0055FF).withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: FloatingActionButton(
           onPressed: () => Get.to(
-            ContactsView(), // Make sure this matches your project's import
+            ContactsView(),
             transition: Transition.cupertino,
             duration: const Duration(milliseconds: 500),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
         ),
       ),
     );

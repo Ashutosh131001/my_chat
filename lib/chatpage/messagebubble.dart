@@ -1,7 +1,7 @@
-import 'dart:ui'; // Required for ImageFilter (Glass Effect)
-import 'package:cached_network_image/cached_network_image.dart'; // 🟢 NEW IMPORT
+import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Required for HapticFeedback & Clipboard
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -16,7 +16,6 @@ class MessageBubble extends StatelessWidget {
   final String chatId;
   final String msgId;
 
-  // 🟢 Inject Controller
   final Chatmessageveiwmodel controller = Get.put(Chatmessageveiwmodel());
 
   MessageBubble({
@@ -27,20 +26,23 @@ class MessageBubble extends StatelessWidget {
     required this.msgId,
   });
 
+  static const Color surfaceColor = Color(0xFF161A22);
+  static const Color textPrimary = Color(0xFFF5F5F7);
+  static const Color textSecondary = Colors.white54;
+  static const Color accentCyan = Color(0xFF00E5FF);
+  static const Color imagePlaceholder = Color(0xFF222834);
+
   @override
   Widget build(BuildContext context) {
     bool isDeleted = msg['isDeletedForEveryone'] == true;
-
-    // Get the list of URLs
     List urls = msg['urls'] ?? [];
     bool hasImage = urls.isNotEmpty;
     String text = msg['text'] ?? "";
-
     List seenBy = msg['seenBy'] ?? [];
     bool isSeen = seenBy.length > 1;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Align(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: Column(
@@ -49,11 +51,11 @@ class MessageBubble extends StatelessWidget {
               : CrossAxisAlignment.start,
           children: [
             GestureDetector(
-              // 🟢 PREMIUM LONG PRESS ACTION
-              onLongPress: () {
+              // ⚡ 1. CAPTURE TAP COORDINATES
+              onLongPressStart: (details) {
                 if (!isDeleted) {
-                  HapticFeedback.mediumImpact(); // 📳 Vibration
-                  _showPremiumOptions(context);
+                  HapticFeedback.mediumImpact();
+                  _showLiquidContextMenu(context, details.globalPosition);
                 }
               },
               child: AnimatedContainer(
@@ -65,28 +67,31 @@ class MessageBubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: isMe
                       ? const LinearGradient(
-                          colors: [Color(0xFF3A86FF), Color(0xFF007BFF)],
+                          colors: [Color(0xFF0055FF), Color(0xFF0033AA)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         )
-                      : const LinearGradient(
-                          colors: [Colors.white, Color(0xFFFDFDFF)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
+                      : null,
+                  color: isMe ? null : surfaceColor,
+                  border: isMe
+                      ? null
+                      : Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                          width: 0.5,
                         ),
                   borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(20),
-                    topRight: const Radius.circular(20),
-                    bottomLeft: Radius.circular(isMe ? 20 : 5),
-                    bottomRight: Radius.circular(isMe ? 5 : 20),
+                    topLeft: const Radius.circular(22),
+                    topRight: const Radius.circular(22),
+                    bottomLeft: Radius.circular(isMe ? 22 : 6),
+                    bottomRight: Radius.circular(isMe ? 6 : 22),
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: isMe
-                          ? Colors.blueAccent.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.04),
+                          ? const Color(0xFF0055FF).withOpacity(0.25)
+                          : Colors.black.withOpacity(0.15),
                       blurRadius: 15,
-                      offset: const Offset(0, 8),
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -94,27 +99,28 @@ class MessageBubble extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 1. IMAGE DISPLAY (Updated with Caching)
+                    // IMAGE DISPLAY
                     if (hasImage && !isDeleted)
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(18),
                         child: urls.length == 1
                             ? _buildSingleImage(urls.first)
                             : _buildImageGrid(urls),
                       ),
 
-                    // 2. TEXT DISPLAY
+                    // TEXT DISPLAY
                     if (text.isNotEmpty || isDeleted)
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 5),
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
                         child: Text(
                           isDeleted ? "🚫 This message was deleted" : text,
-                          style: GoogleFonts.poppins(
-                            color: isMe
-                                ? Colors.white
-                                : const Color(0xFF2D3436),
+                          style: GoogleFonts.inter(
+                            color: isDeleted
+                                ? Colors.white30
+                                : (isMe ? Colors.white : textPrimary),
                             fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                            fontWeight: FontWeight.w400,
                             fontStyle: isDeleted
                                 ? FontStyle.italic
                                 : FontStyle.normal,
@@ -134,18 +140,21 @@ class MessageBubble extends StatelessWidget {
                 children: [
                   Text(
                     ChatUtils.formatTime(msg['timestamp'] ?? 0),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 10,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w800,
+                      color: textSecondary,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
                     ),
                   ),
                   if (isMe && !isDeleted) ...[
                     const SizedBox(width: 4),
                     Icon(
                       Icons.done_all_rounded,
-                      size: 15,
-                      color: isSeen ? Colors.blueAccent : Colors.grey.shade400,
+                      size: 14,
+                      color: isSeen
+                          ? accentCyan
+                          : Colors.white.withOpacity(0.2),
                     ),
                   ],
                 ],
@@ -158,202 +167,211 @@ class MessageBubble extends StatelessWidget {
   }
 
   /* ------------------------------------------------------------
-     💎 PREMIUM GLASSMORPHISM SHEET (Delete Options)
+     🍏 2. iOS-STYLE LIQUID GLASS POPOVER
      ------------------------------------------------------------ */
-  void _showPremiumOptions(BuildContext context) {
-    Get.bottomSheet(
-      BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8F9FD),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: 25),
+  void _showLiquidContextMenu(BuildContext context, Offset tapPosition) {
+    final screenSize = MediaQuery.of(context).size;
 
-              if (isMe)
-                _buildPremiumAction(
-                  icon: Icons.delete_forever_rounded,
-                  color: Colors.redAccent,
-                  label: "Delete for Everyone",
-                  subtitle: "Remove from all devices",
-                  onTap: () {
-                    Get.back();
-                    controller.deleteMessageForEveryone(
-                      chatId: chatId,
-                      messageId: msgId,
-                    );
-                  },
-                  isDanger: true,
-                ),
+    // Prevent the menu from rendering off the bottom of the screen
+    double topOffset = tapPosition.dy;
+    if (topOffset > screenSize.height - 220) {
+      topOffset = screenSize.height - 220;
+    }
 
-              _buildPremiumAction(
-                icon: Icons.delete_outline_rounded,
-                color: Colors.orangeAccent,
-                label: "Delete for Me",
-                subtitle: "Remove only from this device",
-                onTap: () {
-                  Get.back();
-                  controller.deleteMessageForMe(
-                    chatId: chatId,
-                    messageId: msgId,
+    Get.dialog(
+      Stack(
+        children: [
+          // 📍 Position the menu relative to the tap
+          Positioned(
+            top: topOffset,
+            // If it's my message, snap menu to the right. If other, snap left.
+            left: isMe ? null : 20,
+            right: isMe ? 20 : null,
+            child: Material(
+              color: Colors.transparent,
+              child: TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutBack, // 🍏 iOS springy pop effect
+                tween: Tween(begin: 0.8, end: 1.0),
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    // Origin of animation matches bubble alignment
+                    alignment: isMe ? Alignment.topRight : Alignment.topLeft,
+                    child: Opacity(
+                      opacity: scale.clamp(0.0, 1.0),
+                      child: child,
+                    ),
                   );
                 },
-              ),
+                child: Container(
+                  width: 220, // Strict iOS-style width
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: 30,
+                        sigmaY: 30,
+                      ), // Heavy fluid blur
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0x99161A22,
+                          ), // Translucent obsidian
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 0.5,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (msg['text'] != null &&
+                                msg['text'].toString().isNotEmpty) ...[
+                              _buildContextMenuItem(
+                                icon: Icons.copy_rounded,
+                                title: "Copy",
+                                color: textPrimary,
+                                onTap: () {
+                                  Get.back();
+                                  Clipboard.setData(
+                                    ClipboardData(text: msg['text']),
+                                  );
+                                },
+                              ),
+                              _buildDivider(),
+                            ],
 
-              if (msg['text'] != null && msg['text'].toString().isNotEmpty)
-                _buildPremiumAction(
-                  icon: Icons.copy_rounded,
-                  color: Colors.blueAccent,
-                  label: "Copy Text",
-                  subtitle: "Copy to clipboard",
-                  onTap: () {
-                    Get.back();
-                    Clipboard.setData(ClipboardData(text: msg['text']));
-                    Get.snackbar(
-                      "Copied",
-                      "Text copied to clipboard",
-                      snackPosition: SnackPosition.BOTTOM,
-                      margin: const EdgeInsets.all(10),
-                      backgroundColor: Colors.black87,
-                      colorText: Colors.white,
-                      duration: const Duration(seconds: 1),
-                    );
-                  },
+                            _buildContextMenuItem(
+                              icon: Icons.delete_outline_rounded,
+                              title: "Delete for Me",
+                              color: textPrimary,
+                              onTap: () {
+                                Get.back();
+                                controller.deleteMessageForMe(
+                                  chatId: chatId,
+                                  messageId: msgId,
+                                );
+                              },
+                            ),
+
+                            if (isMe) ...[
+                              _buildDivider(),
+                              _buildContextMenuItem(
+                                icon: Icons.delete_forever_rounded,
+                                title: "Delete for Everyone",
+                                color: const Color(0xFFFF453A), // Cyber Red
+                                onTap: () {
+                                  Get.back();
+                                  controller.deleteMessageForEveryone(
+                                    chatId: chatId,
+                                    messageId: msgId,
+                                  );
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-
-              const SizedBox(height: 10),
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
-      backgroundColor: Colors.transparent,
-      enterBottomSheetDuration: const Duration(milliseconds: 250),
+      barrierColor: Colors.black.withOpacity(0.15), // Very light dim
+      transitionDuration: Duration.zero, // We handle animation manually above
     );
   }
 
-  Widget _buildPremiumAction({
+  // 💎 Helper: Individual Menu Item
+  Widget _buildContextMenuItem({
     required IconData icon,
+    required String title,
     required Color color,
-    required String label,
-    required String subtitle,
     required VoidCallback onTap,
-    bool isDanger = false,
   }) {
-    return GestureDetector(
+    return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: isDanger
-              ? Border.all(color: color.withOpacity(0.1), width: 2)
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
+      splashColor: Colors.white.withOpacity(0.05),
+      highlightColor: Colors.white.withOpacity(0.02),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: color,
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: Colors.grey[300],
-            ),
+            Icon(icon, color: color, size: 20),
           ],
         ),
       ),
     );
   }
 
+  // 💎 Helper: Ultra-thin Divider
+  Widget _buildDivider() {
+    return Container(height: 0.5, color: Colors.white.withOpacity(0.08));
+  }
+
   /* ------------------------------------------------------------
-     🖼️ IMAGE HELPERS (Updated with CachedNetworkImage)
+     🖼️ IMAGE HELPERS 
      ------------------------------------------------------------ */
 
   Widget _buildSingleImage(String url) {
     return GestureDetector(
-      onTap: () {
-        Get.to(
-          () => FullScreenImageView(imageUrls: [url], initialIndex: 0),
-          transition: Transition.fadeIn,
-        );
-      },
+      onTap: () => Get.to(
+        () => FullScreenImageView(imageUrls: [url], initialIndex: 0),
+        transition: Transition.fadeIn,
+      ),
       child: Hero(
         tag: url,
         child: CachedNetworkImage(
-          // 🟢 USES DISK CACHE NOW
           imageUrl: url,
           fit: BoxFit.cover,
           width: 250,
           height: 250,
-          // Smooth loading placeholder
           placeholder: (context, url) => Container(
             height: 250,
             width: 250,
-            color: Colors.black12,
+            color: imagePlaceholder,
             child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: accentCyan,
+              ),
             ),
           ),
-          // Error widget (e.g. if offline and never downloaded)
           errorWidget: (context, url, error) => Container(
             height: 250,
             width: 250,
-            color: Colors.grey[300],
-            child: const Icon(Icons.broken_image, color: Colors.grey),
+            color: imagePlaceholder,
+            child: const Icon(
+              Icons.broken_image_rounded,
+              color: Colors.white30,
+            ),
           ),
         ),
       ),
@@ -375,25 +393,21 @@ class MessageBubble extends StatelessWidget {
         itemBuilder: (context, index) {
           if (index == 3 && urls.length > 4) {
             return GestureDetector(
-              onTap: () {
-                Get.to(
-                  () =>
-                      FullScreenImageView(imageUrls: urls, initialIndex: index),
-                  transition: Transition.fadeIn,
-                );
-              },
+              onTap: () => Get.to(
+                () => FullScreenImageView(imageUrls: urls, initialIndex: index),
+                transition: Transition.fadeIn,
+              ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   CachedNetworkImage(
-                    // 🟢 USES DISK CACHE
                     imageUrl: urls[index],
                     fit: BoxFit.cover,
                     placeholder: (context, url) =>
-                        Container(color: Colors.black12),
+                        Container(color: imagePlaceholder),
                   ),
                   Container(
-                    color: Colors.black54,
+                    color: Colors.black.withOpacity(0.6),
                     child: Center(
                       child: Text(
                         "+${urls.length - 3}",
@@ -409,24 +423,15 @@ class MessageBubble extends StatelessWidget {
               ),
             );
           }
-
           return GestureDetector(
-            onTap: () {
-              Get.to(
-                () => FullScreenImageView(imageUrls: urls, initialIndex: index),
-                transition: Transition.fadeIn,
-              );
-            },
+            onTap: () => Get.to(
+              () => FullScreenImageView(imageUrls: urls, initialIndex: index),
+              transition: Transition.fadeIn,
+            ),
             child: CachedNetworkImage(
-              // 🟢 USES DISK CACHE
               imageUrl: urls[index],
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.black12,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 1),
-                ),
-              ),
+              placeholder: (context, url) => Container(color: imagePlaceholder),
               errorWidget: (context, url, error) => const Icon(Icons.error),
             ),
           );

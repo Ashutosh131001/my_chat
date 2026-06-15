@@ -6,6 +6,8 @@ import 'package:hive/hive.dart';
 
 import 'package:my_chat/contactspage/contactusermodel.dart';
 import 'package:my_chat/chatpage/chatroommodel.dart';
+// 🚨 NEW IMPORT REQUIRED FOR THE CACHE PEEK
+import 'package:my_chat/chatpage/messagemodel.dart';
 
 class Chatlistviewmodel extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -25,7 +27,7 @@ class Chatlistviewmodel extends GetxController {
     listenchatlist();
   }
 
- void _loadLocalCache() {
+  void _loadLocalCache() {
     try {
       if (Hive.isBoxOpen('chat_list_cache')) {
         _chatBox = Hive.box<ChatListItem>('chat_list_cache');
@@ -42,7 +44,11 @@ class Chatlistviewmodel extends GetxController {
             return lastTime > clearTime;
           }).toList();
 
-          visibleChats.sort((a, b) => (b.chatroom.lastMessageTime ?? 0).compareTo(a.chatroom.lastMessageTime ?? 0));
+          visibleChats.sort(
+            (a, b) => (b.chatroom.lastMessageTime ?? 0).compareTo(
+              a.chatroom.lastMessageTime ?? 0,
+            ),
+          );
           chatList.assignAll(visibleChats);
         }
       }
@@ -51,7 +57,6 @@ class Chatlistviewmodel extends GetxController {
     }
   }
 
-  // LISTEN TO FIRESTORE
   // LISTEN TO FIRESTORE
   void listenchatlist() {
     final currentUser = _auth.currentUser;
@@ -66,16 +71,64 @@ class Chatlistviewmodel extends GetxController {
         .snapshots()
         .listen(
           (snapshot) async {
-            final List<ChatListItem> uiList = [];    // What the user sees
-            final List<ChatListItem> cacheList = []; // Everything (to remember timestamps)
+            final List<ChatListItem> uiList = []; // What the user sees
+            final List<ChatListItem> cacheList =
+                []; // Everything (to remember timestamps)
 
             for (var doc in snapshot.docs) {
               try {
-                final Map<String, dynamic> data = Map<String, dynamic>.from(doc.data());
+                final Map<String, dynamic> data = Map<String, dynamic>.from(
+                  doc.data(),
+                );
                 data['chatId'] = doc.id;
-                
+
                 if (data['clearedBy'] == null) {
                   data['clearedBy'] = {};
+                }
+
+                // 🚨 THE INTERCEPTOR (HOME SCREEN UI FIX) 🚨
+                // If Firebase only has the placeholder, look into our local decrypted cache!
+                if (data['lastMessage'] == '🔒 Secure Message') {
+                  try {
+                    final boxName = 'chat_messages_${doc.id}';
+                    Box<MessageModel>? msgBox;
+
+                    if (Hive.isBoxOpen(boxName)) {
+                      msgBox = Hive.box<MessageModel>(boxName);
+                    } else {
+                      // Quickly open it to peek inside
+                      msgBox = await Hive.openBox<MessageModel>(boxName);
+                    }
+
+                    if (msgBox.isNotEmpty) {
+                      // Grab the valid messages
+                      final validMessages = msgBox.values
+                          .where((m) => !m.deletedFor.contains(uid))
+                          .toList();
+                      if (validMessages.isNotEmpty) {
+                        validMessages.sort(
+                          (a, b) => b.timestamp.compareTo(a.timestamp),
+                        );
+                        final latestMsg = validMessages.first;
+
+                        // Check if our local cache is up to date with Firebase
+                        if (latestMsg.timestamp >=
+                            (data['lastMessageTime'] ?? 0)) {
+                          data['lastMessage'] =
+                              latestMsg.messageType == MessageType.image
+                              ? '📷 Photo'
+                              : latestMsg.text;
+                        } else {
+                          // They haven't opened the chat yet to download/decrypt the newest message
+                          data['lastMessage'] = '🔒 New Message';
+                        }
+                      }
+                    } else {
+                      data['lastMessage'] = '🔒 New Message';
+                    }
+                  } catch (e) {
+                    print("Cache peek error: $e");
+                  }
                 }
 
                 final chatroom = ChatRoomModel.fromMap(data);
@@ -86,7 +139,7 @@ class Chatlistviewmodel extends GetxController {
                   (id) => id != uid,
                   orElse: () => '',
                 );
-                
+
                 if (otherId.isEmpty) continue;
 
                 // 🟢 RESTORED: Fetching the displayUser logic
@@ -94,7 +147,10 @@ class Chatlistviewmodel extends GetxController {
 
                 try {
                   // Try to get the freshest profile from Firebase
-                  final userDoc = await _firestore.collection('users').doc(otherId).get();
+                  final userDoc = await _firestore
+                      .collection('users')
+                      .doc(otherId)
+                      .get();
                   if (userDoc.exists) {
                     displayUser = usermodel.frommap(userDoc.data()!);
                   }
@@ -110,8 +166,11 @@ class Chatlistviewmodel extends GetxController {
 
                 // 🟢 Now displayUser is defined and we can use it!
                 if (displayUser != null) {
-                  final chatItem = ChatListItem(chatroom: chatroom, otheruser: displayUser);
-                  
+                  final chatItem = ChatListItem(
+                    chatroom: chatroom,
+                    otheruser: displayUser,
+                  );
+
                   // 1. ALWAYS add to Cache (to remember the clearTime)
                   cacheList.add(chatItem);
 
@@ -131,14 +190,14 @@ class Chatlistviewmodel extends GetxController {
                 a.chatroom.lastMessageTime ?? 0,
               ),
             );
-            
+
             chatList.assignAll(uiList);
             isLoading.value = false;
 
             // 🗄️ UPDATE CACHE WITH EVERYTHING
             if (_chatBox != null && _chatBox!.isOpen) {
               await _chatBox!.clear();
-              await _chatBox!.addAll(cacheList); 
+              await _chatBox!.addAll(cacheList);
             }
           },
           onError: (error) {
@@ -147,6 +206,7 @@ class Chatlistviewmodel extends GetxController {
           },
         );
   }
+
   void removeChat(String chatId) async {
     // 1. Remove from UI
     chatList.removeWhere((item) => item.chatroom.chatId == chatId);

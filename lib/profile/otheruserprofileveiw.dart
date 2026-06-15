@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -20,6 +21,15 @@ class OtherUserProfileView extends StatefulWidget {
 class _OtherUserProfileViewState extends State<OtherUserProfileView> {
   final OtherUserProfileViewModel vm = Get.put(OtherUserProfileViewModel());
 
+  // 🎨 DESIGN TOKENS
+  static const Color bgCanvas = Color(0xFF0A0C10); // Deep Midnight Charcoal
+  static const Color surfaceColor = Color(0xFF161A22); // Obsidian Surface
+  static const Color textPrimary = Color(0xFFF5F5F7); // Crisp Off-White
+  static const Color textSecondary = Colors.white54; // Muted Silver
+  static const Color accentCyan = Color(0xFF00E5FF); // Electric Cyan
+  static const Color cyberRed = Color(0xFFFF453A); // Premium Destructive Red
+  static const Color neonGreen = Color(0xFF39FF14); // Tech Green for Calls
+
   @override
   void initState() {
     super.initState();
@@ -30,23 +40,13 @@ class _OtherUserProfileViewState extends State<OtherUserProfileView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD),
+      backgroundColor: bgCanvas,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundColor: Colors.white,
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new,
-                color: Colors.black87,
-                size: 18,
-              ),
-              onPressed: () => Get.back(),
-            ),
-          ),
+          child: _buildGhostBackButton(),
         ),
       ),
       extendBodyBehindAppBar: true,
@@ -67,41 +67,52 @@ class _OtherUserProfileViewState extends State<OtherUserProfileView> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              /* -------- HEADER SECTION -------- */
+              /* -------- 🌟 AMBIENT GLOW HEADER -------- */
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Taller Background to fill upper space
+                  // Deep Ambient Top Glow
                   Container(
-                    height: 360,
+                    height: 380,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: RadialGradient(
+                        center: const Alignment(0, -0.6),
+                        radius: 1.2,
                         colors: [
-                          Colors.blueAccent.withOpacity(0.1),
-                          const Color(0xFFF8F9FD),
+                          accentCyan.withOpacity(0.12), // Cyan studio light
+                          bgCanvas, // Fades to absolute dark
                         ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
                       ),
                     ),
                   ),
                   Column(
                     children: [
                       const SizedBox(height: 110),
-                      // Profile Image
+
+                      // 🖼️ Premium Avatar Well
                       Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          color: surfaceColor,
+                          border: Border.all(
+                            color: Colors.white.withOpacity(
+                              0.08,
+                            ), // Hardware edge
+                            width: 1.0,
+                          ),
                           boxShadow: [
-                            BoxShadow(color: Colors.black12, blurRadius: 20),
+                            BoxShadow(
+                              color: accentCyan.withOpacity(0.15),
+                              blurRadius: 40,
+                              spreadRadius: 5,
+                            ),
                           ],
                         ),
                         child: CircleAvatar(
-                          radius: 80, // Slightly larger
-                          backgroundColor: const Color(0xFFF0F3F8),
+                          radius: 75,
+                          backgroundColor: const Color(0xFF222834), // Dark core
                           backgroundImage: user.profileImageUrl != null
                               ? NetworkImage(user.profileImageUrl!)
                               : null,
@@ -110,43 +121,51 @@ class _OtherUserProfileViewState extends State<OtherUserProfileView> {
                                   (user.name != null && user.name!.isNotEmpty)
                                       ? user.name![0].toUpperCase()
                                       : "?",
-                                  style: GoogleFonts.poppins(
+                                  style: GoogleFonts.inter(
                                     fontSize: 55,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blueAccent,
+                                    fontWeight: FontWeight.w900,
+                                    color: accentCyan,
                                   ),
                                 )
                               : null,
                         ),
                       ),
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 24),
+
+                      // 📝 Name
                       Text(
                         user.name ?? "Unknown",
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 30,
+                        style: GoogleFonts.inter(
+                          fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF1A1A1A),
+                          color: textPrimary,
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      // Removed Phone number from here to move it to a "Card" below
+                      const SizedBox(height: 8),
+
+                      // 🏷️ Glass Pill Badge
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 14,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blueAccent.withOpacity(0.1),
+                          color: accentCyan.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: accentCyan.withOpacity(0.2),
+                            width: 0.5,
+                          ),
                         ),
                         child: Text(
-                          "MyChat User",
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blueAccent,
+                          "Secure Contact",
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: accentCyan,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
@@ -155,192 +174,67 @@ class _OtherUserProfileViewState extends State<OtherUserProfileView> {
                 ],
               ),
 
-              /* -------- ACTION BUTTON -------- */
+              /* -------- 🚀 TACTILE ACTION BUTTON -------- */
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 10,
                 ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    onPressed: () => Get.back(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      elevation: 10,
-                      shadowColor: Colors.blueAccent.withOpacity(0.4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.chat_bubble_rounded, size: 22),
-                        const SizedBox(width: 12),
-                        Text(
-                          "Send Message",
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: _GlowingActionButton(onTap: () => Get.back()),
               ),
 
               const SizedBox(height: 10),
 
-              /* -------- 1. ABOUT SECTION -------- */
-              _buildSectionCard(
+              /* -------- 1. ABOUT SECTION (Ghost Card) -------- */
+              _buildPremiumGhostCard(
                 title: "ABOUT",
-                content: user.about ?? "Hey there! I am using MyChat 💬",
+                content: user.about ?? "Hey there! I am using MyChat.",
                 icon: Icons.info_outline_rounded,
+                accentColor: accentCyan,
               ),
 
-              /* -------- 2. CONTACT DETAILS (New Filler) -------- */
-              // Moving the phone number here creates a whole new visual block
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(25),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.phone_iphone_rounded,
-                          size: 18,
-                          color: Colors.green,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "CONTACT DETAILS",
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.green,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Container(
-                          height: 45,
-                          width: 45,
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const Icon(Icons.call, color: Colors.green),
-                        ),
-                        const SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.phoneNumber,
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1A1A1A),
-                              ),
-                            ),
-                            Text(
-                              "Mobile",
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: Colors.grey.shade400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              /* -------- 2. CONTACT DETAILS (Ghost Card) -------- */
+              _buildContactDetailsCard(user.phoneNumber),
 
-              /* -------- 3. SECURITY (Static Filler) -------- */
-              // This doesn't need to DO anything, it just reassures the user
-              // and fills the screen nicely.
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F3F8), // Slightly darker bg
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.lock_outline_rounded, color: Colors.grey),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Text(
-                        "Messages and calls are end-to-end encrypted. No one outside of this chat, not even MyChat, can read or listen to them.",
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              /* -------- 3. E2E SECURITY BADGE -------- */
+              _buildSecurityBadge(),
 
               const SizedBox(height: 20),
 
-              /* -------- 4. REPORT BUTTON (Footer) -------- */
+              /* -------- 4. REPORT / DANGER ZONE -------- */
               TextButton.icon(
                 onPressed: () {
+                  HapticFeedback.heavyImpact();
                   Get.snackbar(
-                    "Report",
-                    "Report submitted. We will review this user.",
-                    backgroundColor: Colors.black87,
+                    "Report Submitted",
+                    "We will review this user securely.",
+                    backgroundColor: surfaceColor.withOpacity(0.9),
                     colorText: Colors.white,
-                    snackPosition: SnackPosition.BOTTOM,
+                    icon: const Icon(Icons.shield_rounded, color: cyberRed),
+                    snackPosition: SnackPosition.TOP,
                     margin: const EdgeInsets.all(20),
+                    barBlur: 20,
+                    borderColor: Colors.white.withOpacity(0.1),
+                    borderWidth: 1,
                   );
                 },
-                icon: const Icon(
-                  Icons.flag_outlined,
-                  color: Colors.redAccent,
-                  size: 20,
-                ),
+                icon: const Icon(Icons.flag_rounded, color: cyberRed, size: 20),
                 label: Text(
                   "Block or Report User",
-                  style: GoogleFonts.poppins(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.w600,
+                  style: GoogleFonts.inter(
+                    color: cyberRed,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  backgroundColor: cyberRed.withOpacity(0.05),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
               ),
@@ -353,22 +247,48 @@ class _OtherUserProfileViewState extends State<OtherUserProfileView> {
     );
   }
 
-  Widget _buildSectionCard({
+  // 💎 Helper: Top Back Button
+  Widget _buildGhostBackButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor.withOpacity(0.8),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
+      ),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: textPrimary,
+              size: 18,
+            ),
+            onPressed: () => Get.back(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 💎 Helper: Standard Ghost Card
+  Widget _buildPremiumGhostCard({
     required String title,
     required String content,
-    IconData? icon,
+    required IconData icon,
+    required Color accentColor,
   }) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      padding: const EdgeInsets.all(25),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 0.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -379,29 +299,232 @@ class _OtherUserProfileViewState extends State<OtherUserProfileView> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: Colors.blueAccent.withOpacity(0.8)),
+              Icon(icon, size: 18, color: accentColor),
               const SizedBox(width: 8),
               Text(
                 title,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.blueAccent.withOpacity(0.8),
-                  letterSpacing: 1.2,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: accentColor,
+                  letterSpacing: 1.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 16),
           Text(
             content,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.inter(
               fontSize: 15,
-              color: const Color(0xFF4A4A4A),
+              color: textPrimary,
               height: 1.6,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 💎 Helper: Contact Specific Card
+  Widget _buildContactDetailsCard(String phoneNumber) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.phone_iphone_rounded,
+                size: 18,
+                color: neonGreen,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "CONTACT DETAILS",
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: neonGreen,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Container(
+                height: 48,
+                width: 48,
+                decoration: BoxDecoration(
+                  color: neonGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: neonGreen.withOpacity(0.2),
+                    width: 0.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.call_rounded,
+                  color: neonGreen,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    phoneNumber,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Mobile",
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 💎 Helper: E2E Security Notice
+  Widget _buildSecurityBadge() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1117), // Deeper void color
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accentCyan.withOpacity(0.1), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentCyan.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.lock_outline_rounded,
+              color: accentCyan,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Messages and calls are end-to-end encrypted. No one outside of this chat can read or listen to them.",
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ------------------------------------------------------------
+   🚀 CUSTOM ANIMATED "SEND MESSAGE" BUTTON
+   ------------------------------------------------------------ */
+class _GlowingActionButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _GlowingActionButton({required this.onTap});
+
+  @override
+  State<_GlowingActionButton> createState() => _GlowingActionButtonState();
+}
+
+class _GlowingActionButtonState extends State<_GlowingActionButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: _isPressed ? 0.95 : 1.0,
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOutQuart,
+      child: Listener(
+        onPointerDown: (_) {
+          HapticFeedback.lightImpact();
+          setState(() => _isPressed = true);
+        },
+        onPointerUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap(); // Execute routing when finger lifts
+        },
+        onPointerCancel: (_) => setState(() => _isPressed = false),
+        child: Container(
+          width: double.infinity,
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF00E5FF),
+                Color(0xFF0055FF),
+              ], // Electric Cyan to Deep Blue
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(
+                  0xFF0055FF,
+                ).withOpacity(_isPressed ? 0.2 : 0.4),
+                blurRadius: _isPressed ? 10 : 20,
+                offset: Offset(0, _isPressed ? 4 : 8),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.chat_bubble_rounded,
+                size: 22,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                "Send Message",
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

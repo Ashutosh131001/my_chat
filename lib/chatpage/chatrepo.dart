@@ -7,12 +7,20 @@ import 'package:hive/hive.dart';
 import 'package:my_chat/chatpage/chatroommodel.dart';
 import 'package:my_chat/chatpage/messagemodel.dart';
 
+// 🚨 IMPORT YOUR ENCRYPTION TOOLS HERE
+import 'package:encrypt/encrypt.dart' as enc;
+import 'package:my_chat/service/chatencryptioninterceptor.dart';
+// import 'package:my_chat/services/chat_encryption_interceptor.dart'; // Adjust path!
+
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   
   Box<MessageModel>? _msgBox;
   StreamSubscription? _msgSub;
+
+  // 🚨 THE VAULT MEMORY: Holds the fast AES key while this specific chat is open
+  enc.Key? currentRoomAesKey;
 
   // 🌐 Internet Check
   Future<bool> hasInternetConnection() async {
@@ -24,7 +32,7 @@ class ChatRepository {
     }
   }
 
-  // 📥 Get or Create Chatroom (with Offline Fallback)
+  // 📥 Get or Create Chatroom (with Offline Fallback & RSA Handshake)
   Future<ChatRoomModel> getOrCreateChatRoom(String otherUserId) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw Exception("User not logged in");
@@ -41,21 +49,61 @@ class ChatRepository {
       doc = await chatRef.get(const GetOptions(source: Source.cache));
     }
 
+   
+    // We need to fetch both Public Keys to securely share the AES Key
+    final myUserDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+    final friendUserDoc = await _firestore.collection('users').doc(otherUserId).get();
+
+    final myPublicKey = myUserDoc.data()?['publicKey'];
+    final friendPublicKey = friendUserDoc.data()?['publicKey'];
+
     if (!doc.exists) {
-      final chatRoom = ChatRoomModel(
-        chatId: chatId,
-        participants: participants,
-        lastMessage: null,
-        lastMessageTime: null,
-        clearedBy: {},
-      );
-      await chatRef.set(chatRoom.toMap());
-      return chatRoom;
+      // BRAND NEW CHAT
+      Map<String, dynamic> roomData = {
+        'chatId': chatId,
+        'participants': participants,
+        'lastMessage': null,
+        'lastMessageTime': null,
+        'clearedBy': {},
+      };
+
+      // Only secure the room if BOTH users have updated the app and have keys
+      if (myPublicKey != null && friendPublicKey != null) {
+        currentRoomAesKey = ChatEncryptionInterceptor.generateChatRoomAESKey();
+        
+        roomData['aesKey_${currentUser.uid}'] = ChatEncryptionInterceptor.lockAESKeyWithRSA(currentRoomAesKey!, myPublicKey);
+        roomData['aesKey_$otherUserId'] = ChatEncryptionInterceptor.lockAESKeyWithRSA(currentRoomAesKey!, friendPublicKey);
+      } else {
+        print("Warning: Missing Public Keys. Chat will be unencrypted until both users update.");
+        currentRoomAesKey = null;
+      }
+
+      await chatRef.set(roomData);
+      return ChatRoomModel.fromMap(roomData);
     }
-    return ChatRoomModel.fromMap(doc.data() as Map<String, dynamic>);
+
+    // EXISTING CHAT
+    Map<String, dynamic> existingData = doc.data() as Map<String, dynamic>;
+
+    if (existingData.containsKey('aesKey_${currentUser.uid}')) {
+       // Unlock the AES key using your hardware Private Key
+       final myLockedKey = existingData['aesKey_${currentUser.uid}'];
+       currentRoomAesKey = await ChatEncryptionInterceptor.unlockAESKeyWithRSA(myLockedKey);
+    } 
+    // Fallback: If it's an old chat, we upgrade it to a secure chat right now!
+    else if (myPublicKey != null && friendPublicKey != null) {
+       currentRoomAesKey = ChatEncryptionInterceptor.generateChatRoomAESKey();
+       
+       await chatRef.update({
+          'aesKey_${currentUser.uid}': ChatEncryptionInterceptor.lockAESKeyWithRSA(currentRoomAesKey!, myPublicKey),
+          'aesKey_$otherUserId': ChatEncryptionInterceptor.lockAESKeyWithRSA(currentRoomAesKey!, friendPublicKey),
+       });
+    }
+
+    return ChatRoomModel.fromMap(existingData);
   }
 
-  // 🎧 Listen to Live Messages (and load local cache)
+  // 🎧 Listen to Live Messages
   Future<void> listenToMessages({
     required String chatId,
     required String myUserId,
@@ -94,7 +142,15 @@ class ChatRepository {
 
           for (var doc in snapshot.docs) {
             try {
-              final msg = MessageModel.fromMap(doc.data());
+              Map<String, dynamic> data = doc.data();
+
+              // 🚨 THE INTERCEPTOR (INCOMING TEXT) 🚨
+              // If Firebase gives us Gibberish, unscramble it before showing the UI
+              if (data['isEncrypted'] == true && currentRoomAesKey != null && data['text'] != null) {
+                 data['text'] = ChatEncryptionInterceptor.decryptMessage(data['text'], currentRoomAesKey!);
+              }
+
+              final msg = MessageModel.fromMap(data);
               if (!msg.deletedFor.contains(myUserId)) {
                 serverMessages.add(msg);
               }
@@ -118,20 +174,41 @@ class ChatRepository {
     required String chatId,
     required MessageModel message,
   }) async {
-    // 1. Save Message
+    
+    // 🚨 THE INTERCEPTOR (OUTGOING TEXT) 🚨
+    MessageModel finalMessage = message;
+
+    // If it's a text message and we have an active vault, scramble it!
+    if (message.messageType == MessageType.text && currentRoomAesKey != null && message.text != null) {
+      final scrambledText = ChatEncryptionInterceptor.encryptMessage(message.text!, currentRoomAesKey!);
+      
+      finalMessage = message.copyWith(
+        text: scrambledText,
+        isEncrypted: true, // Tell Firebase this is a secure message
+      );
+    }
+
+    // 1. Save Message to Firebase
     await _firestore
         .collection('chatrooms')
         .doc(chatId)
         .collection('messages')
-        .doc(message.messageId)
-        .set(message.toMap());
+        .doc(finalMessage.messageId)
+        .set(finalMessage.toMap());
 
     // 2. Update Chatroom
     List<String> participants = chatId.contains('_') ? chatId.split('_') : [];
     
+    // 🔥 CRITICAL UI FIX FOR HOME SCREEN:
+    // If we save the gibberish text to the 'lastMessage' field, your Home screen 
+    // will just show random letters. We show a placeholder instead!
+    String displayLastMessage = finalMessage.messageType == MessageType.image
+        ? '📷 Photo'
+        : (finalMessage.isEncrypted ? '🔒 Secure Message' : finalMessage.text ?? '');
+
     Map<String, dynamic> roomData = {
-      'lastMessage': message.messageType == MessageType.image ? '📷 Photo' : message.text,
-      'lastMessageTime': message.timestamp,
+      'lastMessage': displayLastMessage,
+      'lastMessageTime': finalMessage.timestamp,
     };
 
     if (participants.isNotEmpty) {

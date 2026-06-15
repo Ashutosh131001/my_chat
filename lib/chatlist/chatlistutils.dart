@@ -6,6 +6,7 @@ import 'package:my_chat/chatlist/chatlistviewmodel.dart';
 
 class ChatListUtils {
   final Chatlistviewmodel vm = Get.put(Chatlistviewmodel());
+
   // Get Initials (e.g., "Ashutosh" -> "A")
   static String getInitial(String? name) =>
       (name == null || name.isEmpty) ? "?" : name[0].toUpperCase();
@@ -21,83 +22,124 @@ class ChatListUtils {
     return "$hour:$min ${date.hour >= 12 ? 'PM' : 'AM'}";
   }
 
-  // Show Clear Chat Dialog
+  // Show Clear Chat Dialog (Redesigned for Premium Dark Theme)
   static void showClearChatDialog(
     BuildContext context,
     String chatId,
     String currentUid,
   ) {
+    // 🎨 DESIGN TOKENS
+    const Color surfaceColor = Color(0xFF161A22); // Obsidian Surface Base
+    const Color textPrimary = Color(0xFFF5F5F7); // Clean Off-White
+    const Color destructiveRed = Color(0xFFFF453A); // Premium Cyber Coral Red
+
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(28),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          // Subtle highlight on the top lip of the sheet to separate from the background
+          border: Border(
+            top: BorderSide(color: Colors.white.withOpacity(0.08), width: 1.0),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 🛠️ Modern Drag Handle Indicator
             Container(
-              width: 40,
+              width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Colors.white.withOpacity(0.2), // Translucent and clean
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            const SizedBox(height: 25),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFFFFEBEE),
-                child: Icon(Icons.delete_outline, color: Colors.red),
-              ),
-              title: const Text(
-                "Clear History",
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              onTap: () async {
-                Get.back();
+            const SizedBox(height: 24),
 
-                if (chatId.isNotEmpty) {
-                  // 🟢 1. OPTIMISTIC UI UPDATE (Instant Deletion)
-                  // Find the active controller and wipe this chat from the screen instantly
-                  try {
-                    final vm = Get.find<Chatlistviewmodel>();
-                    vm.chatList.removeWhere(
-                      (item) => item.chatroom.chatId == chatId,
-                    );
-                  } catch (e) {
-                    print("VM not found: $e");
-                  }
+            // Redestructive Option Card
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: Colors.white.withOpacity(
+                    0.02,
+                  ), // Ghost card surface
+                  leading: CircleAvatar(
+                    backgroundColor: destructiveRed.withOpacity(
+                      0.12,
+                    ), // Deep ruby glass well
+                    child: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: destructiveRed,
+                    ),
+                  ),
+                  title: const Text(
+                    "Clear Chat History",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                      fontSize: 16,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "Wipes local cache and resets conversation feed",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.4),
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTap: () async {
+                    Get.back();
 
-                  // 🟢 2. Instantly wipe the local messages cache
-                  final boxName = 'chat_messages_$chatId';
-                  try {
-                    if (Hive.isBoxOpen(boxName)) {
-                      await Hive.box(boxName).clear();
-                    } else {
-                      await Hive.deleteBoxFromDisk(boxName);
+                    if (chatId.isNotEmpty) {
+                      // 🟢 1. OPTIMISTIC UI UPDATE (Instant Deletion)
+                      try {
+                        final vm = Get.find<Chatlistviewmodel>();
+                        vm.chatList.removeWhere(
+                          (item) => item.chatroom.chatId == chatId,
+                        );
+                      } catch (e) {
+                        print("VM not found: $e");
+                      }
+
+                      // 🟢 2. Instantly wipe the local messages cache
+                      final boxName = 'chat_messages_$chatId';
+                      try {
+                        if (Hive.isBoxOpen(boxName)) {
+                          await Hive.box(boxName).clear();
+                        } else {
+                          await Hive.deleteBoxFromDisk(boxName);
+                        }
+                      } catch (e) {
+                        print("Error clearing local box: $e");
+                      }
+
+                      // 🟢 3. Update Firebase (Happens silently in the background)
+                      await FirebaseFirestore.instance
+                          .collection('chatrooms')
+                          .doc(chatId)
+                          .set({
+                            'clearedBy': {
+                              currentUid: DateTime.now().millisecondsSinceEpoch,
+                            },
+                          }, SetOptions(merge: true));
                     }
-                  } catch (e) {
-                    print("Error clearing local box: $e");
-                  }
-
-                  // 🟢 3. Update Firebase (Happens silently in the background)
-                  await FirebaseFirestore.instance
-                      .collection('chatrooms')
-                      .doc(chatId)
-                      .set({
-                        'clearedBy': {
-                          currentUid: DateTime.now().millisecondsSinceEpoch,
-                        },
-                      }, SetOptions(merge: true));
-                }
-              },
+                  },
+                ),
+              ),
             ),
-            const SizedBox(height: 15),
           ],
         ),
       ),
+      barrierColor: Colors.black.withOpacity(0.6), // Rich background dimming
+      isDismissible: true,
+      enableDrag: true,
     );
   }
 }

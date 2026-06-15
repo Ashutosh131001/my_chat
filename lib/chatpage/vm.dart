@@ -34,9 +34,17 @@ class Chatmessageveiwmodel extends GetxController {
   }
 
   // 🟢 3. Initialize UI Connection
-  Future<void> initChat(String chatId, String myUserId, Map<String, int> clearedBy) async {
+ // 🟢 3. Initialize UI Connection
+  // 🚨 ADDED: otherUserId so we can perform the security handshake!
+  Future<void> initChat(String chatId, String myUserId, String otherUserId, Map<String, int> clearedBy) async {
     messages.clear(); // Clear old ghosts
     
+    // 🚨 THE IGNITION: THE HANDSHAKE TRIGGER 🚨
+    // This looks up the chat room and securely loads the shared AES "Silver Key" into memory.
+    // If you skip this, the Interceptor won't know how to encrypt/decrypt!
+    await _chatRepo.getOrCreateChatRoom(otherUserId);
+
+    // Now that the vault is unlocked, we can safely listen to the messages
     await _chatRepo.listenToMessages(
       chatId: chatId,
       myUserId: myUserId,

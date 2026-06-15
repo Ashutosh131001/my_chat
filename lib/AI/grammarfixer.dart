@@ -1,9 +1,10 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:my_chat/AI/api.dart';
 
 class GrammarService {
-  final String _apikey = '';
+  final String _apikey = Apikey.openAiKey;
   Future<String?> fixGrammar(String text) async {
     if (text.trim().isEmpty) return null;
     try {
